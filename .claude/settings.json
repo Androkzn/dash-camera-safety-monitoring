@@ -54,7 +54,16 @@
       "Bash(python -c \"import playwright; print\\(playwright.__version__\\)\")",
       "Bash(/Users/andreitekhtelev/Desktop/fleet-safety-demo/.venv/bin/python -c \"import playwright; print\\('playwright ok'\\)\")",
       "Bash(lsof -nP -iTCP:8000 -sTCP:LISTEN)",
-      "Bash(awk '{print substr\\($0,1,2\\)}')"
+      "Bash(awk '{print substr\\($0,1,2\\)}')",
+      "Bash(git commit -m ' *)",
+      "Bash(python -m json.tool)",
+      "Bash(git remote *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/api/settings/schema)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/api/settings/schema -H \"Authorization: Bearer devtoken\")",
+      "Bash(.venv/bin/playwright install *)",
+      "Bash(curl -s -o /dev/null -w \"settings=%{http_code} type=%{content_type}\\\\n\" http://127.0.0.1:8000/settings)",
+      "Bash(curl -s -o /dev/null -w \"validation=%{http_code} type=%{content_type}\\\\n\" http://127.0.0.1:8000/validation)",
+      "Bash(curl -s -o /dev/null -w \"dashboard=%{http_code} type=%{content_type}\\\\n\" http://127.0.0.1:8000/dashboard)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
