@@ -7,7 +7,7 @@ Usage:
     python start.py --skip-tests   # start without running tests (fast loop)
     python start.py --cloud        # also start cloud_receiver on port 8001
     python start.py --no-browser   # headless (CI, servers without a GUI)
-    python start.py --port 8000    # override the main server port
+    python start.py --port 3000    # override the main server port
 
 Role:
     Convenience wrapper for local development. Production deployments use
@@ -83,7 +83,7 @@ PYTHON = str(VENV_PYTHON) if VENV_PYTHON.exists() else sys.executable
 # Network binding defaults — overridable via env so the same launcher can
 # drive both the local dev box (loopback) and CI fixtures (all-interfaces).
 SERVER_HOST = os.getenv("ROAD_HOST", "127.0.0.1")
-SERVER_PORT = int(os.getenv("ROAD_PORT", "8000"))
+SERVER_PORT = int(os.getenv("ROAD_PORT", "3000"))
 CLOUD_PORT = int(os.getenv("ROAD_CLOUD_PORT", "8001"))
 
 # ANSI terminal colour codes used purely for nicer console output. Most
@@ -285,7 +285,7 @@ def main():
     parser.add_argument("--cloud", action="store_true", help="Also start cloud_receiver on port 8001")
     parser.add_argument("--no-browser", action="store_true", help="Don't auto-open the browser")
     parser.add_argument("--skip-tests", action="store_true", help="Skip running the test suite")
-    parser.add_argument("--port", type=int, default=SERVER_PORT, help="Server port (default 8000)")
+    parser.add_argument("--port", type=int, default=SERVER_PORT, help="Server port (default 3000)")
     args = parser.parse_args()
 
     port = args.port

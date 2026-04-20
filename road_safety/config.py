@@ -518,9 +518,8 @@ DEPTH_MODEL = os.getenv("ROAD_DEPTH_MODEL", "pinhole").strip().lower()
 # loopback only (safer for dev). Default here differs from ``start.py``
 # which binds loopback; when running via docker/systemd we bind 0.0.0.0.
 SERVER_HOST = os.getenv("ROAD_HOST", "0.0.0.0")
-# ``ROAD_PORT`` — HTTP port for the edge server. 8000 keeps the cloud
-# receiver (8001) free on the same host for dev.
-SERVER_PORT = int(os.getenv("ROAD_PORT", "8000"))
+# ``ROAD_PORT`` — HTTP port for the edge server.
+SERVER_PORT = int(os.getenv("ROAD_PORT", "3000"))
 # How often the driver-safety-score decay job runs, in seconds. Hourly
 # (3600) by default. Set to 0 to disable decay entirely (scores persist).
 SCORE_DECAY_INTERVAL_SEC = int(os.getenv("ROAD_SCORE_DECAY_INTERVAL_SEC", "3600"))
