@@ -63,7 +63,15 @@
       "Bash(.venv/bin/playwright install *)",
       "Bash(curl -s -o /dev/null -w \"settings=%{http_code} type=%{content_type}\\\\n\" http://127.0.0.1:8000/settings)",
       "Bash(curl -s -o /dev/null -w \"validation=%{http_code} type=%{content_type}\\\\n\" http://127.0.0.1:8000/validation)",
-      "Bash(curl -s -o /dev/null -w \"dashboard=%{http_code} type=%{content_type}\\\\n\" http://127.0.0.1:8000/dashboard)"
+      "Bash(curl -s -o /dev/null -w \"dashboard=%{http_code} type=%{content_type}\\\\n\" http://127.0.0.1:8000/dashboard)",
+      "Bash(gh repo *)",
+      "Bash(git ls-remote *)",
+      "Bash(curl -s -o /dev/null -w \"frame=%{http_code}\\\\n\" http://127.0.0.1:8000/admin/frame/primary)",
+      "Bash(curl -s -o /dev/null -w \"feed=%{http_code}\\\\n\" \"http://127.0.0.1:8000/admin/video_feed/primary\" -m 2)",
+      "Bash(git fetch *)",
+      "Bash(ffprobe -v error -show_entries stream=width,height,r_frame_rate:format=duration /tmp/demo.webm)",
+      "Bash(ffmpeg -y -i demo.webm -vf \"fps=10,scale=1280:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=96[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4\" -loop 0 demo.gif)",
+      "Bash(ffmpeg -y -i /tmp/demo.webm -c:v libx264 -pix_fmt yuv420p -crf 28 -preset veryfast /Users/andreitekhtelev/Desktop/fleet-safety-demo/demo.mp4)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
