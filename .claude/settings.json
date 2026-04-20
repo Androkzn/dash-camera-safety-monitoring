@@ -92,7 +92,8 @@
       "Bash(ffmpeg -y -i /tmp/demo_recording/115925090d0ec0f576a3b5c937c418a6.webm -vf 'setpts=PTS/3,fps=5,scale=700:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=32[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5' -loop 0 /tmp/demo.gif)",
       "Bash(python start.py)",
       "Bash(lsof -iTCP:8000 -sTCP:LISTEN -nP)",
-      "Bash(python -m json.tool /Users/andreitekhtelev/Desktop/dash-camera-safety-monitoring/.claude/settings.json)"
+      "Bash(python -m json.tool /Users/andreitekhtelev/Desktop/dash-camera-safety-monitoring/.claude/settings.json)",
+      "Bash(lsof -iTCP:3000 -sTCP:LISTEN -nP)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
