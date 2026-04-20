@@ -92,25 +92,18 @@ MODEL_PATH = os.getenv("ROAD_MODEL_PATH", str(PROJECT_ROOT / "yolov8n.pt"))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Section: STREAM SETTINGS
-# ─────────────────────────────────────────────────────────────────────────────
-# Demo "fake dashcam" fallback: when no operator has configured streams via
-# ``ROAD_STREAM_SOURCE`` or ``ROAD_STREAM_SOURCES``, we default to the
-# bundled front+rear-cam MP4s so the admin UI has something to show out of
-# the box. The ``StreamReader`` loops local files, so the demo replays
-# end-to-end without operator action. Set either env var to override for a
-# real deployment.
+# Bundled demo video files. No longer auto-added as live stream sources —
+# retained here because ``server.py::/api/demo/video-track`` uses the paths
+# to sync GPS waypoints against MP4 creation_time windows.
 _DEMO_FRONT_CAM_FILE = PROJECT_ROOT / "resourses" / "Front Cam.mp4"
 _DEMO_REAR_CAM_FILE = PROJECT_ROOT / "resourses" / "Rear Cam.mp4"
 _DEMO_LEFT_CAM_FILE = PROJECT_ROOT / "resourses" / "Left Cam.mp4"
-_DEMO_DASHCAM_FILE = _DEMO_FRONT_CAM_FILE  # back-compat alias for legacy imports
-_DEMO_DASHCAM_SOURCE = str(_DEMO_DASHCAM_FILE) if _DEMO_DASHCAM_FILE.exists() else ""
-_DEMO_REAR_CAM_SOURCE = str(_DEMO_REAR_CAM_FILE) if _DEMO_REAR_CAM_FILE.exists() else ""
-_DEMO_LEFT_CAM_SOURCE = str(_DEMO_LEFT_CAM_FILE) if _DEMO_LEFT_CAM_FILE.exists() else ""
 
 # ``ROAD_STREAM_SOURCE`` — what the edge node captures from. Empty string
-# falls back to the demo dashcam loop above. Accepted forms: HLS URL,
+# means no default source; operators configure streams via this env var,
+# ``ROAD_STREAM_SOURCES``, or the admin API. Accepted forms: HLS URL,
 # RTSP URL, local file path, webcam index (e.g. ``0``).
-DEFAULT_STREAM_SOURCE = os.getenv("ROAD_STREAM_SOURCE", _DEMO_DASHCAM_SOURCE)
+DEFAULT_STREAM_SOURCE = os.getenv("ROAD_STREAM_SOURCE", "")
 
 
 def _parse_stream_sources() -> list[dict[str, str]]:
@@ -130,31 +123,6 @@ def _parse_stream_sources() -> list[dict[str, str]]:
     raw = os.getenv("ROAD_STREAM_SOURCES", "").strip()
     if not raw:
         if DEFAULT_STREAM_SOURCE:
-            # Demo naming: when the fallback is the bundled front-cam MP4,
-            # label it with the demo vehicle identity so the admin UI shows
-            # "Fox Factory — Nissan Rogue XX 001 X — Front Cam" instead of
-            # "Primary". When the rear-cam MP4 is also present, add it as a
-            # second source so both angles of the demo vehicle are monitored
-            # in parallel.
-            if DEFAULT_STREAM_SOURCE == _DEMO_DASHCAM_SOURCE:
-                sources = [{
-                    "id": "primary",
-                    "name": "Fox Factory — Nissan Rogue XX 001 X — Front Cam",
-                    "url": DEFAULT_STREAM_SOURCE,
-                }]
-                if _DEMO_REAR_CAM_SOURCE:
-                    sources.append({
-                        "id": "rear",
-                        "name": "Fox Factory — Nissan Rogue XX 001 X — Rear Cam",
-                        "url": _DEMO_REAR_CAM_SOURCE,
-                    })
-                if _DEMO_LEFT_CAM_SOURCE:
-                    sources.append({
-                        "id": "left",
-                        "name": "Fox Factory — Nissan Rogue XX 001 X — Left Cam",
-                        "url": _DEMO_LEFT_CAM_SOURCE,
-                    })
-                return sources
             return [{"id": "primary", "name": "Primary", "url": DEFAULT_STREAM_SOURCE}]
         return []
     # Prefer ``;`` as the entry separator when it's present (lets labelled

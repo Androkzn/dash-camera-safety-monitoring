@@ -93,7 +93,10 @@
       "Bash(python start.py)",
       "Bash(lsof -iTCP:8000 -sTCP:LISTEN -nP)",
       "Bash(python -m json.tool /Users/andreitekhtelev/Desktop/dash-camera-safety-monitoring/.claude/settings.json)",
-      "Bash(lsof -iTCP:3000 -sTCP:LISTEN -nP)"
+      "Bash(lsof -iTCP:3000 -sTCP:LISTEN -nP)",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" http://127.0.0.1:3000/api/live/status)",
+      "Bash(/Users/andreitekhtelev/Desktop/fleet-safety-demo/.venv/bin/python -c \"import uvicorn, fastapi, road_safety; print\\('ok'\\)\")",
+      "Bash(curl -sf -o /dev/null http://127.0.0.1:3000/api/live/status)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
