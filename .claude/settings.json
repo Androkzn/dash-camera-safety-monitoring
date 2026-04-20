@@ -89,7 +89,10 @@
       "Bash(ffmpeg -y -i /tmp/demo_recording/115925090d0ec0f576a3b5c937c418a6.webm -vf 'fps=5,scale=900:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=48[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5' -loop 0 /tmp/demo.gif)",
       "Bash(ffmpeg -y -i /tmp/demo_recording/115925090d0ec0f576a3b5c937c418a6.webm -vf 'setpts=PTS/2.5,fps=6,scale=820:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=48[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5' -loop 0 /tmp/demo.gif)",
       "Bash(ffmpeg -y -i /tmp/demo_recording/115925090d0ec0f576a3b5c937c418a6.webm -vf 'setpts=PTS/3,fps=5,scale=760:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=48[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5' -loop 0 /tmp/demo.gif)",
-      "Bash(ffmpeg -y -i /tmp/demo_recording/115925090d0ec0f576a3b5c937c418a6.webm -vf 'setpts=PTS/3,fps=5,scale=700:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=32[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5' -loop 0 /tmp/demo.gif)"
+      "Bash(ffmpeg -y -i /tmp/demo_recording/115925090d0ec0f576a3b5c937c418a6.webm -vf 'setpts=PTS/3,fps=5,scale=700:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=32[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5' -loop 0 /tmp/demo.gif)",
+      "Bash(python start.py)",
+      "Bash(lsof -iTCP:8000 -sTCP:LISTEN -nP)",
+      "Bash(python -m json.tool /Users/andreitekhtelev/Desktop/dash-camera-safety-monitoring/.claude/settings.json)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
