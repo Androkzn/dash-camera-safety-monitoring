@@ -1,0 +1,129 @@
+/* ============================================================
+ * DetectionsPanel.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/admin/DetectionsPanel.tsx
+ * UI region:   right sidebar on AdminPage, "Detections" tab.
+ *              Shows per-frame YOLO detection rows (class, track
+ *              id, confidence, bbox) streamed from the SSE feed.
+ *
+ * TEACH: CSS Modules scoping
+ *   This file is `.module.css`. Vite hashes every local class name
+ *   at build time (e.g. `.detRow` becomes `._detRow_a1b2c3_1`).
+ *   The React component reads the mapping via:
+ *       import styles from "./DetectionsPanel.module.css";
+ *       <div className={styles.detRow}>...</div>
+ *   That is why we can use short, readable names here without
+ *   worrying about colliding with class names elsewhere.
+ *   Global animations referenced with `animation: fadeIn ...` come
+ *   from global.css — animation NAMES are not scoped.
+ *   (See global.css header for the full story.)
+ * ============================================================ */
+
+/* Scrollable list container for detection rows. */
+.list {
+  padding: 10px 12px;
+}
+
+/* Placeholder shown when no detections yet. */
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 40px 16px;
+  font-size: 12px;
+}
+
+/* Wrapper around all detections produced by a single frame.
+ * The fadeIn animation smooths new groups arriving from SSE. */
+.frameGroup {
+  margin-bottom: 12px;
+  animation: fadeIn 0.25s ease;   /* defined in global.css */
+}
+
+/* Header row above each frame group: "frame 123 ... 14:03:02". */
+.frameHdr {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 4px 0;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  /* TEACH: flex = one-dimensional layout. justify-content spaces
+   * children along the main axis (row here). space-between pushes
+   * the frame index to the left edge and timestamp to the right. */
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+}
+
+/* One detection row: class | confidence | track-id | bbox. */
+.detRow {
+  display: flex;
+  align-items: center;   /* TEACH: centers children on the cross axis */
+  gap: 8px;              /* TEACH: gap = space between flex children */
+  padding: 5px 8px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  font-size: 12px;
+  background: var(--card);
+  border: 1px solid transparent;   /* reserve space so :hover border doesn't shift layout */
+  transition: border-color 0.15s, background 0.15s;
+}
+/* TEACH: :hover is a pseudo-class — styles apply only while the
+ * pointer is over the element. Great for affordances. */
+.detRow:hover {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Detection class name (e.g. "person", "car"). */
+.detCls {
+  font-weight: 600;
+  min-width: 68px;
+}
+/* Color-coded class names. The .tsx adds one of these in
+ * addition to .detCls so we get a semantic hue per class. */
+.person {
+  color: #86efac;   /* soft green */
+}
+.vehicle {
+  color: #fbbf24;   /* amber/yellow */
+}
+
+/* Confidence percentage (monospaced so digits line up). */
+.detConf {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 36px;
+}
+
+/* Track-id chip (from ByteTrack). Purple pill background. */
+.detTrack {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #c4b5fd;
+  background: #1a1022;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Ego→object distance chip (metres). Cyan pill so it reads as kinematic
+ * info distinct from the purple track id. */
+.detDist {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #67e8f9;
+  background: rgba(8, 47, 73, 0.7);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bounding-box coordinates, shown faded at row end.
+ * `margin-left: auto` pushes this flex child to the far right. */
+.detBbox {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: auto;
+  opacity: 0.5;
+}

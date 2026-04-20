@@ -1,0 +1,68 @@
+/* ============================================================
+ * PerceptionBanner.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/dashboard/PerceptionBanner.tsx
+ * UI region:   thin banner under the dashboard header indicating
+ *              the state of the perception pipeline (OK or
+ *              DEGRADED — e.g. camera night/occluded). Amber tint
+ *              when degraded.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Baseline banner (OK state). */
+.banner {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--border);
+  background: #0b0f14;
+  transition: background-color 0.3s;  /* smooth color swap when state changes */
+}
+
+/* Applied (in addition to .banner) when the pipeline is degraded.
+ * Swaps the banner to an amber warning palette. */
+.degraded {
+  background: #2a1a07;
+  border-color: #7c5a14;
+  color: #fde68a;
+}
+
+/* "PERCEPTION" label on the left. */
+.lbl {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+/* TEACH: `.degraded .lbl` is a descendant combinator — it matches
+ * `.lbl` ONLY when it is inside an element that also has `.degraded`.
+ * Lets us change a child's color based on a parent modifier class. */
+.degraded .lbl {
+  color: #fcd34d;
+}
+
+/* Short state tag (e.g. "OK" / "DEGRADED"). */
+.st {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+/* Reason string next to the state. */
+.reason {
+  color: var(--muted);
+}
+.degraded .reason {
+  color: #fde68a;
+  opacity: 0.8;
+}
+
+/* Numeric metrics on the far right (fps / lat / etc.). */
+.metrics {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+}

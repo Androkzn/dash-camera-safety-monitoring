@@ -1,0 +1,68 @@
+/* ============================================================
+ * TestBadge.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/tests/TestBadge.tsx
+ * UI region:   small clickable badge in the TopBar / Admin area
+ *              summarizing the test-runner state (idle / running
+ *              / passed / failed) with pass/fail counts. Click
+ *              opens the TestDrawer.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Pill-shaped badge — dot + label + counts. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: #0b0f14;
+  transition: all 0.2s;             /* `all` = animate every animatable prop */
+  user-select: none;                 /* prevent text selection on drag */
+  color: var(--text);
+}
+.badge:hover {
+  border-color: var(--accent);
+}
+
+/* Circular status dot to the left of the label. */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;                /* makes a square into a circle */
+  flex-shrink: 0;
+}
+/* Dot colour variants. `animation` pulls the global pulse-dot
+ * keyframes defined in global.css. */
+.idle {
+  background: var(--muted);
+}
+.running {
+  background: var(--accent);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+.passed {
+  background: var(--green);
+}
+.failed {
+  background: var(--high);
+}
+
+/* Pass / fail count numbers next to the dot. */
+.counts {
+  display: flex;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cntPass {
+  color: var(--green);
+}
+.cntFail {
+  color: var(--high);
+}

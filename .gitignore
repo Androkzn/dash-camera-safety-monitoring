@@ -1,0 +1,61 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Node / frontend dependencies (reinstalled via `npm install`)
+node_modules/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# YOLO weights (downloaded on first run)
+*.pt
+
+# Packaging artifacts
+*.egg-info/
+dist/
+build/
+
+# Runtime data (generated at runtime, never committed)
+data/events.json
+data/summary.json
+data/eval.json
+data/thumbnails/
+data/cloud.db
+data/settings.db
+data/settings.db-shm
+data/settings.db-wal
+data/feedback.jsonl
+data/outbound_queue.jsonl
+data/audit.jsonl
+data/watchdog.jsonl
+data/active_learning/pending/
+data/test_suite/results.json
+# Event clip extracts (±3s around each event) — generated at runtime for
+# the EventDialog video player; can be large and not worth versioning.
+data/clips/
+.test-report.json
+
+# Input video (too large for git)
+data/*.mp4
+data/*.mov
+data/*.MOV
+resourses/
+
+# Test / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Runtime logs
+logs/
+
+# Claude Code — personal overrides only; commit shared config (.claude/settings.json, rules/, skills/, hooks/)
+.claude/settings.local.json
+CLAUDE.local.md

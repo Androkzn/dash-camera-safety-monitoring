@@ -1,0 +1,177 @@
+/* ============================================================
+ * CopilotPanel.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/dashboard/CopilotPanel.tsx
+ * UI region:   right column of DashboardPage — an LLM chat
+ *              ("Copilot") with chat history, suggestion chips,
+ *              and a compose box (textarea + send button).
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Outer rounded card. `overflow: hidden` clips the inner scroll
+ * area so its corners stay rounded. */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;                 /* allow inner scroll — see TabBar notes */
+  overflow: hidden;
+}
+
+/* Panel header row: title on left, optional subtitle on right. */
+.head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* "Copilot" title. */
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* Subtitle beside the title (e.g. model name). */
+.sub {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+/* Scrollable chat transcript area.
+ * `flex-direction: column` + `gap` stacks message bubbles. */
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* Generic chat bubble.
+ * `white-space: pre-wrap` preserves newlines from LLM output;
+ * `word-wrap: break-word` wraps long URLs/tokens. */
+.msg {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.55;
+}
+/* User-authored bubble — aligned to the right via align-self. */
+.user {
+  align-self: flex-end;
+  background: #1e3a5f;
+  border: 1px solid #264b77;
+  color: #e0f2fe;
+}
+/* Assistant/bot bubble — aligned to the left. */
+.bot {
+  align-self: flex-start;
+  background: #0b0f14;
+  border: 1px solid var(--border);
+}
+/* Error bubble — red-tinted border + red-tinted text. */
+.err {
+  border-color: var(--high);
+  color: #fecaca;
+}
+
+/* Suggestion-chip row above the compose box (quick prompts). */
+.chips {
+  display: flex;
+  flex-wrap: wrap;                /* wrap chips onto multiple lines */
+  gap: 6px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* A single chip. `border-radius: 999px` = fully rounded pill. */
+.chip {
+  background: #0b0f14;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: #0d1520;
+}
+
+/* Compose area: flex row of textarea + send button. */
+.compose {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--border);
+}
+/* TEACH: `.compose textarea` is a DESCENDANT COMBINATOR (space).
+ * It matches any <textarea> anywhere inside an element with the
+ * (locally-scoped) `compose` class. Useful for styling elements
+ * whose JSX does not receive a className of its own. */
+.compose textarea {
+  flex: 1;                          /* grow to fill row */
+  resize: none;                     /* disable the drag-handle */
+  background: #0b0f14;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;                    /* inherit the parent font settings */
+  font-size: 12.5px;
+  min-height: 56px;
+  max-height: 140px;
+  outline: none;                    /* we draw our own focus ring below */
+  transition: border-color 0.15s;
+}
+/* TEACH: :focus is the keyboard/input focus state. We swap the
+ * border color AND draw a soft glow with box-shadow to keep the
+ * focus affordance without an ugly browser default outline. */
+.compose textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1);
+}
+.compose button {
+  background: var(--accent);
+  color: #0b0f14;
+  border: none;
+  border-radius: 10px;
+  padding: 0 18px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 12.5px;
+  min-width: 84px;
+  align-self: stretch;               /* match textarea height */
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+/* TEACH: the `:not(:disabled)` filter means "hover only applies
+ * while the button is NOT disabled" — prevents a confusing
+ * hover effect on a button the user cannot actually click. */
+.compose button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+/* :disabled matches buttons whose React `disabled` prop is true. */
+.compose button:disabled {
+  background: #334155;
+  color: var(--muted);
+  cursor: not-allowed;
+}

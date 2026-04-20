@@ -1,0 +1,62 @@
+/* ============================================================
+ * HistoryPanel.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/admin/HistoryPanel.tsx
+ * UI region:   right sidebar on AdminPage, "History" tab —
+ *              a filterable, refreshable list of past events.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Top filter toolbar: severity dropdown + refresh + counter. */
+.filterBar {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Styled <select> — resets ugly OS default with our dark theme. */
+.select {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: inherit;            /* TEACH: inherit pulls the font stack from the parent */
+}
+
+/* Primary "Refresh" action — solid accent background. */
+.refreshBtn {
+  background: var(--accent);
+  color: #000;                      /* black text on bright cyan for contrast */
+  border: none;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Result count pushed to the far right.
+ * `margin-left: auto` is the idiomatic flex-item "push right" trick. */
+.count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Scrollable list container below the filter bar. */
+.list {
+  padding: 10px 12px;
+}
+
+/* Empty-state placeholder. */
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 40px 16px;
+  font-size: 12px;
+}

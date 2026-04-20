@@ -1,0 +1,80 @@
+/* ============================================================
+ * HealthStrip.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/admin/HealthStrip.tsx
+ * UI region:   horizontal status bar at the top of AdminPage,
+ *              under the TopBar. Shows FPS, uptime, event counts,
+ *              stream source, etc. — the "vitals" row.
+ * (See global.css header for how CSS Modules scoping works.)
+ * ============================================================ */
+
+/* The overall horizontal strip. */
+.strip {
+  display: flex;
+  gap: 0;                         /* cells share their own borders */
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  overflow-x: auto;               /* allow horizontal scroll on narrow screens */
+}
+
+/* One "health group" cell — label on top, value below. */
+.hg {
+  padding: 10px 16px;
+  border-right: 1px solid var(--border);
+  min-width: 0;                   /* TEACH: allows flex child to shrink below its content width, enabling ellipsis */
+  flex-shrink: 0;                 /* do not shrink — keep each cell full width */
+  transition: background 0.15s;
+}
+.hg:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+/* TEACH: :last-child selects the final child of its parent.
+ * Used here to drop the trailing divider on the right-most cell. */
+.hg:last-child {
+  border-right: none;
+}
+
+/* Small uppercase label above each value. */
+.label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+/* Main numeric value.
+ * `font-variant-numeric: tabular-nums` forces monospaced digit
+ * widths so numbers do not jitter when they update. */
+.val {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;         /* "..." when clipped */
+}
+/* Semantic color modifiers applied to .val via the .tsx: */
+.ok {
+  color: var(--green);
+}
+.warn {
+  color: var(--medium);
+}
+.err {
+  color: var(--high);
+}
+.accent {
+  color: var(--accent);
+}
+
+/* Optional sub-line under the value (e.g. "last: 2s ago"). */
+.sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,95 @@
+/* ============================================================
+ * FeedbackButtons.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/events/FeedbackButtons.tsx
+ * UI region:   "Was this a real conflict?" pair of buttons
+ *              (True-Positive / False-Positive) embedded in an
+ *              EventCard; used to collect labeled feedback that
+ *              feeds back into model tuning.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Button group container. */
+.fb {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+/* Base button style — neutral pill; modifiers (.tp/.fp) tint it. */
+.btn {
+  display: inline-flex;            /* inline but flex-capable for icon + text */
+  align-items: center;
+  gap: 5px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+  transition: border-color 0.15s, opacity 0.25s, background-color 0.15s;
+}
+/* Generic hover affordance; filtered out while disabled. */
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+/* True-positive (confirmed real conflict) — green hover. */
+.tp:hover:not(:disabled) {
+  border-color: #22c55e;
+  color: #86efac;
+}
+/* False-positive (noise) — red hover. */
+.fp:hover:not(:disabled) {
+  border-color: var(--high);
+  color: #fca5a5;
+}
+.btn:disabled {
+  cursor: default;
+}
+/* Applied to the NOT-chosen button after the user submits one. */
+.faded {
+  opacity: 0.35;
+}
+/* Applied to the chosen button after submission — persistent highlight. */
+.chosen {
+  background: #0b0f14;
+  border-color: var(--accent);
+  opacity: 1;
+}
+/* TEACH: `.chosen.tp` — a COMPOUND SELECTOR (no space between).
+ * It matches a single element that has BOTH classes applied,
+ * letting us give the chosen-and-green button a distinct style. */
+.chosen.tp {
+  border-color: #22c55e;
+  color: #86efac;
+}
+.chosen.fp {
+  border-color: var(--high);
+  color: #fca5a5;
+}
+
+/* Icon (thumb up/down SVG) inside a button. */
+.ico {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  vertical-align: -1px;            /* nudge icon down for visual alignment */
+}
+
+/* Acknowledgement text shown after submission ("Thanks" / error). */
+.ack {
+  color: var(--muted);
+  font-size: 11px;
+  margin-left: 4px;
+}
+.ok {
+  color: #86efac;
+}
+.err {
+  color: #fca5a5;
+}

@@ -1,0 +1,124 @@
+/* ============================================================
+ * Dialog.module.css
+ * ============================================================
+ * Themed alert / confirm dialog. Uses the native <dialog>
+ * element for built-in accessibility (focus trap, Esc, modal
+ * stacking) and styles it with the project's dark palette.
+ * ============================================================ */
+
+.dialog {
+  /* Reset native dialog defaults */
+  border: 1px solid var(--border, #2c2c33);
+  background: #15171c;
+  color: var(--fg, #e6e6e6);
+  border-radius: 10px;
+  padding: 0;
+  min-width: min(420px, calc(100vw - 32px));
+  max-width: min(520px, calc(100vw - 32px));
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  /* Center via the modal default; ensure margin auto kicks in. */
+  margin: auto;
+  animation: dlgFadeIn 0.14s ease-out;
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  animation: dlgBackdropFadeIn 0.14s ease-out;
+}
+
+@keyframes dlgFadeIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes dlgBackdropFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Variant accent on the left edge */
+.dialog form {
+  border-left: 4px solid transparent;
+  padding: 18px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: inherit;
+}
+.variantInfo form    { border-left-color: #2563eb; }
+.variantWarning form { border-left-color: #ca8a04; }
+.variantDanger form  { border-left-color: #b91c1c; }
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--fg, #e6e6e6);
+}
+
+.body {
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.body p { margin: 0 0 8px; }
+.body p:last-child { margin-bottom: 0; }
+.body code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Action buttons share a baseline shape; per-variant tints below. */
+.btnGhost,
+.btnPrimary,
+.btnWarning,
+.btnDanger {
+  border: 1px solid var(--border, #2c2c33);
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--fg, #e6e6e6);
+}
+.btnGhost:hover { background: rgba(255, 255, 255, 0.04); }
+
+.btnPrimary {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+.btnPrimary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+
+.btnWarning {
+  background: #ca8a04;
+  color: #1a1a00;
+  border-color: #ca8a04;
+}
+.btnWarning:hover { background: #a16207; border-color: #a16207; }
+
+.btnDanger {
+  background: #b91c1c;
+  color: white;
+  border-color: #b91c1c;
+}
+.btnDanger:hover { background: #991b1b; border-color: #991b1b; }

@@ -1,0 +1,117 @@
+/* ============================================================
+ * global.css — App-wide base styles
+ * ============================================================
+ *
+ * TEACH: "Global" stylesheet vs CSS Modules
+ *   This file is imported ONCE from frontend/src/main.tsx as:
+ *       import "./styles/global.css";
+ *   Because it is a plain .css (not .module.css), its selectors
+ *   apply document-wide — the browser sees these rules unchanged.
+ *   A *.module.css file, by contrast, has its class names hashed
+ *   by Vite so they scope to one component only.
+ *
+ *   Use this file for:
+ *     - resets (undo browser defaults)
+ *     - <body> + <html> defaults (font, color, background)
+ *     - scrollbar, selection, focus-ring overrides
+ *     - shared @keyframes animations (usable from any module)
+ *
+ * TEACH: Why @import tokens.css here?
+ *   Bundlers resolve @import at build time. Putting it at the top
+ *   of the one file that is imported globally guarantees the CSS
+ *   variables exist before any component style tries to read them.
+ * ============================================================ */
+
+@import "./tokens.css";
+
+/* TEACH: The "universal selector" (*) matches every element.
+ * Combined with ::before / ::after it also covers pseudo-elements.
+ * This is a classic CSS reset — we wipe browser default margins/
+ * paddings and switch to border-box so width/height INCLUDE border
+ * and padding (far more intuitive when building layouts). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Make the viewport and React root fill the full browser height,
+ * so flex/grid children can use percentage and flex sizing. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Default page chrome: dark background, light text, system font. */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* The React mount point (<div id="root">). Using flex column here
+ * lets the TopBar sit flush at top while the page content stretches
+ * to fill remaining vertical space via `flex: 1`. */
+#root {
+  display: flex;               /* TEACH: flex = 1D layout (row or column) */
+  flex-direction: column;      /* stack children top-to-bottom */
+  min-height: 100vh;           /* 100vh = full viewport height */
+}
+
+/* TEACH: ::-webkit-scrollbar targets the scrollbar itself on
+ * WebKit/Blink browsers (Chrome, Safari, Edge). Firefox ignores
+ * these rules but has its own scrollbar-color property. We use
+ * them to make the scrollbar thinner and match the dark theme. */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+/* TEACH: @keyframes defines an animation timeline. The name after
+ * @keyframes is what you reference from `animation: <name> ...`.
+ * Keyframes defined in a GLOBAL stylesheet are reachable from any
+ * CSS Module (animation names are not scoped). */
+
+/* Pulsing dot — used for status indicators that need to breathe
+ * (live-stream LED, running-test dot, warning watchdog badge). */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+/* Fade-in with a tiny upward slide — used when new event cards
+ * or detection rows are inserted into a list, so the stream does
+ * not visually "pop" jarringly. */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;   /* shorthand: reset transform to identity */
+  }
+}
+
+/* Simple blink — dims an element mid-cycle. Used by sparingly
+ * to highlight transient "just-updated" states. */
+@keyframes blink {
+  50% {
+    opacity: 0.4;
+  }
+}

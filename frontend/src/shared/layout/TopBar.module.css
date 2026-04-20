@@ -1,0 +1,125 @@
+/* ============================================================
+ * TopBar.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/layout/TopBar.tsx
+ * UI region:   persistent navigation bar at the top of every
+ *              page — brand logo, route links (Dashboard / Admin
+ *              / Monitoring), and a red error-count bubble on
+ *              the Monitoring link.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Bar container. `flex-shrink: 0` stops it collapsing when the
+ * page's main flex content grows. */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 16px;
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0;
+}
+
+/* Brand logo + app title. */
+.brand {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  color: var(--text);
+  text-decoration: none;            /* remove the <a> underline */
+  margin-right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* TEACH: `.brand svg` = descendant combinator — tints the SVG
+ * logo cyan without needing a className on the <svg> element. */
+.brand svg {
+  color: var(--accent);
+}
+
+/* Nav link group. `align-items: stretch` lets each link fill
+ * the bar's full height so the bottom border reaches the edge. */
+.nav {
+  display: flex;
+  gap: 0;
+  height: 100%;
+  align-items: stretch;
+}
+/* `.nav a` — every <NavLink> inside .nav. */
+.nav a {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;   /* placeholder so active doesn't shift */
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav a:hover {
+  color: var(--text);
+}
+/* Applied by react-router to the active route.
+ * TEACH: `!important` forces this rule to win over anything else.
+ * We use it here because react-router injects the active state
+ * at runtime and other cascading rules may otherwise override. */
+.active {
+  color: var(--accent) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+/* Wrapper on the Monitoring link so the red bubble can be
+ * absolutely-positioned relative to it. */
+.monLink {
+  position: relative;
+}
+
+/* Small red count bubble hanging off the Monitoring link.
+ * TEACH: position: absolute + offsets (top/right) place it
+ * relative to the nearest positioned ancestor (.monLink).
+ * `pointer-events: none` lets clicks pass through to the link. */
+.errorBubble {
+  position: absolute;
+  top: 6px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--high);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--panel);    /* halo so bubble pops over border */
+  animation: pulse-bubble 1.4s ease-in-out infinite;  /* defined below */
+  pointer-events: none;
+}
+
+/* Amber variant for the Validation bubble — drift is worth paying
+ * attention to but not as alarming as a hard monitoring error.
+ * `background` overrides the default red from .errorBubble. */
+.driftBubble {
+  background: var(--medium);
+}
+
+/* Local keyframes — scale pulse that grabs the eye.
+ * TEACH: @keyframes declared inside a .module.css are NOT scoped;
+ * they live in the global animation name space. Use unique names
+ * (like "pulse-bubble") to avoid collisions across files. */
+@keyframes pulse-bubble {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Flex spacer — pushes anything after it to the right edge. */
+.spacer {
+  flex: 1;
+}

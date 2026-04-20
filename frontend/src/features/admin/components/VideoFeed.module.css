@@ -1,0 +1,108 @@
+/* ============================================================
+ * VideoFeed.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/admin/VideoFeed.tsx
+ * UI region:   left column of AdminPage — live (redacted)
+ *              MJPEG/JPEG stream with a translucent stats overlay
+ *              pinned to its bottom edge.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Column holding the video + anything below it. */
+.videoCol {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+}
+
+/* Black "letterbox" wrapper. Centers the <img> both axes.
+ * TEACH: position: relative creates a POSITIONING CONTEXT for any
+ * `position: absolute` descendants — they will be positioned
+ * relative to THIS box (not the page). */
+.videoWrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;     /* TEACH: centers along the main axis */
+  background: #000;
+  position: relative;
+  min-height: 280px;
+  overflow: hidden;
+}
+
+/* The streamed frame image. `object-fit: contain` preserves
+ * aspect ratio and fits the image fully inside the box. */
+.feedImg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* "No stream" placeholder text. Centered via the parent's flex,
+ * and z-indexed above black background but under the overlay. */
+.placeholder {
+  color: #334155;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+  /* TEACH: position: absolute removes the element from normal flow
+   * and positions it relative to its nearest positioned ancestor. */
+  position: absolute;
+  z-index: 1;
+}
+
+/* Stats overlay strip pinned to the bottom of the video frame.
+ * `backdrop-filter: blur(...)` blurs whatever is BEHIND the
+ * element — gives a frosted-glass look over the video. */
+.overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+/* One stat cell inside the overlay. */
+.stat {
+  flex: 1;                      /* split overlay evenly */
+  padding: 8px 12px;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+/* Drop the trailing divider — same pattern as HealthStrip. */
+.stat:last-child {
+  border-right: none;
+}
+
+/* The big number in each stat cell. */
+.num {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* Semantic colors layered on top of .num by the .tsx: */
+.accent {
+  color: var(--accent);
+}
+.green {
+  color: var(--green);
+}
+.warn {
+  color: var(--medium);
+}
+.danger {
+  color: var(--high);
+}
+
+/* Small caption under each stat number. */
+.statLabel {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 1px;
+}

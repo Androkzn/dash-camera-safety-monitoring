@@ -1,0 +1,201 @@
+/* ============================================================
+ * SelectedStreamHeader.module.css
+ * ============================================================
+ * Imported by: components/admin/SelectedStreamHeader.tsx
+ * UI region:   thin info strip between the global TopBar and the
+ *              Admin page's HealthStrip. Shows identity + key
+ *              counters for the focused (or primary) stream.
+ * ============================================================ */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    to bottom,
+    rgba(56, 189, 248, 0.04),
+    rgba(255, 255, 255, 0.01)
+  );
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text, #e2e8f0);
+  flex: 0 0 auto;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+.dotRunning {
+  background: var(--green, #22c55e);
+}
+
+.dotPaused {
+  background: var(--muted, #64748b);
+}
+
+.nameWrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #e2e8f0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.focusBadge,
+.primaryBadge,
+.detectionOff {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.focusBadge {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent, #38bdf8);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.primaryBadge {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--muted, #94a3b8);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.detectionOff {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.host {
+  font-size: 10px;
+  color: var(--muted, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Counters row — wraps under identity on narrow screens. */
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  flex: 0 1 auto;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.statLabel {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted, #64748b);
+}
+
+.statValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #e2e8f0);
+  font-variant-numeric: tabular-nums;
+}
+
+.warn {
+  color: var(--medium, #f59e0b);
+}
+
+.clearBtn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text, #e2e8f0);
+  cursor: pointer;
+}
+
+.clearBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent, #38bdf8);
+  color: var(--accent, #38bdf8);
+}
+
+.restartBtn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text, #e2e8f0);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.restartBtn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: var(--accent, #38bdf8);
+  color: var(--accent, #38bdf8);
+}
+
+.restartBtn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.error {
+  flex: 1 1 100%;
+  font-size: 11px;
+  color: var(--high, #ef4444);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  color: var(--muted, #64748b);
+  font-size: 12px;
+  font-style: italic;
+}

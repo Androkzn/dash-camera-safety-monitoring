@@ -1,0 +1,69 @@
+/* ============================================================
+ * TabBar.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/admin/TabBar.tsx
+ * UI region:   tab switcher in the AdminPage sidebar.
+ *              Tabs toggle between Detections / History / Events
+ *              panels. Only the active tab's panel is visible.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Outer container holding tab bar + all panels.
+ * `min-height: 0` is a classic flex trick: without it a flex
+ * child will NOT shrink below its content's intrinsic size, so
+ * inner `overflow-y: auto` would never kick in. */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  flex: 1;                 /* fill remaining sidebar height */
+}
+
+/* The tab-strip row itself. */
+.bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  gap: 0;                  /* tabs share edges */
+}
+
+/* A single tab button. Transparent bottom border so it shifts
+ * in color (not position) when .active is applied. */
+.tab {
+  flex: 1;                 /* tabs split the width equally */
+  padding: 10px 14px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-family: inherit;
+}
+.tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.02);
+}
+/* Applied by .tsx to the currently-selected tab. */
+.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Tab panel container. Hidden by default; the active one gets
+ * .activePanel to switch display on. */
+.panel {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: none;           /* inactive panels are removed from flow */
+}
+.activePanel {
+  display: block;          /* reveal the active panel */
+}

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make test)",
+      "Bash(make lint)",
+      "Bash(make docker-build)",
+      "Bash(make docker-up)",
+      "Bash(make docker-up-cloud)",
+      "Bash(make docker-down)",
+      "Bash(pytest:*)",
+      "Bash(.venv/bin/pytest:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(.venv/bin/python -m py_compile:*)",
+      "Bash(cd frontend && npm run build)",
+      "Bash(cd frontend && npm run dev)",
+      "Bash(cd frontend && npx tsc:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(curl -s http://localhost:8000/*)",
+      "Bash(curl -s http://localhost:8001/*)",
+      "Bash(python start.py --skip-tests --no-browser)",
+      "Bash(/Users/andreitekhtelev/Desktop/fleet-safety-demo/.venv/bin/python -m pytest tests/test_validator.py -v)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/api/live/status)",
+      "Bash(curl -s \"http://localhost:8000/api/watchdog/recent?n=100\")",
+      "Bash(curl -s \"http://localhost:8000/api/events?limit=5\")",
+      "Bash(awk '-F: ' '{print $NF}')",
+      "Bash(python -c \"import road_safety.server\")",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" http://localhost:8000/api/live/status)",
+      "Bash(git -C /Users/andreitekhtelev/Desktop/fleet-safety-demo mv frontend/src/features/monitoring/components/ValidatorControl.tsx frontend/src/features/validation/components/ValidatorControl.tsx)",
+      "Bash(git -C /Users/andreitekhtelev/Desktop/fleet-safety-demo mv frontend/src/features/monitoring/components/ValidatorControl.module.css frontend/src/features/validation/components/ValidatorControl.module.css)",
+      "Bash(git -C /Users/andreitekhtelev/Desktop/fleet-safety-demo mv frontend/src/features/monitoring/components/EventsPanel.tsx frontend/src/features/validation/components/EventsPanel.tsx)",
+      "Bash(git -C /Users/andreitekhtelev/Desktop/fleet-safety-demo mv frontend/src/features/monitoring/components/EventsPanel.module.css frontend/src/features/validation/components/EventsPanel.module.css)",
+      "Bash(git -C /Users/andreitekhtelev/Desktop/fleet-safety-demo mv frontend/src/features/monitoring/hooks/useValidator.ts frontend/src/features/validation/hooks/useValidator.ts)",
+      "Bash(/Users/andreitekhtelev/Desktop/fleet-safety-demo/.venv/bin/python -m py_compile /Users/andreitekhtelev/Desktop/fleet-safety-demo/road_safety/server.py /Users/andreitekhtelev/Desktop/fleet-safety-demo/road_safety/core/detection.py /Users/andreitekhtelev/Desktop/fleet-safety-demo/road_safety/core/egomotion.py /Users/andreitekhtelev/Desktop/fleet-safety-demo/road_safety/core/orientation_policy.py /Users/andreitekhtelev/Desktop/fleet-safety-demo/road_safety/services/llm.py)",
+      "Bash(kill 28475 28476 28614)",
+      "Bash(curl -s -o /dev/null -w \"health=%{http_code}\\\\n\" http://localhost:8000/api/live/status)",
+      "Bash(kill 39166 39167 39340)",
+      "Bash(curl -s -H \"Authorization: Bearer demo-admin-token\" http://localhost:8000/api/llm/stats)",
+      "Bash(ROAD_LOG_FORMAT=text python start.py --skip-tests --no-browser)",
+      "Bash(curl -sv http://localhost:8000/api/watchdog)",
+      "Bash(xargs -r kill)",
+      "Bash(git shortlog *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(grep -E '\\\\.md$')",
+      "Bash(chmod +x /tmp/check_features.sh)",
+      "Bash(/tmp/check_features.sh)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('road_safety/server.py'\\).read\\(\\)\\)\")",
+      "Bash(python -c \"import playwright; print\\(playwright.__version__\\)\")",
+      "Bash(/Users/andreitekhtelev/Desktop/fleet-safety-demo/.venv/bin/python -c \"import playwright; print\\('playwright ok'\\)\")",
+      "Bash(lsof -nP -iTCP:8000 -sTCP:LISTEN)",
+      "Bash(awk '{print substr\\($0,1,2\\)}')"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Write(.env)",
+      "Edit(.env)",
+      "Read(.env)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-edit.sh",
+            "timeout": 15,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

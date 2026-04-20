@@ -1,0 +1,20 @@
+{
+  "_comment": "Template manifest. Copy to manifest.json and replace clips with real recordings + labels. Running eval.py --suite against this file will produce clear 'missing video/labels' warnings per row rather than crashing.",
+  "clips": [
+    {
+      "name": "pedestrian_crossing_day",
+      "video": "data/test_suite/clips/pedestrian_crossing_day.mp4",
+      "labels": "data/test_suite/clips/pedestrian_crossing_day.labels.json"
+    },
+    {
+      "name": "tailgate_highway_dusk",
+      "video": "data/test_suite/clips/tailgate_highway_dusk.mp4",
+      "labels": "data/test_suite/clips/tailgate_highway_dusk.labels.json"
+    },
+    {
+      "name": "parking_lot_low_speed",
+      "video": "data/test_suite/clips/parking_lot_low_speed.mp4",
+      "labels": "data/test_suite/clips/parking_lot_low_speed.labels.json"
+    }
+  ]
+}

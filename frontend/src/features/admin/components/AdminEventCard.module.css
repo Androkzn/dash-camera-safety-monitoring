@@ -1,0 +1,137 @@
+/* ============================================================
+ * AdminEventCard.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/events/AdminEventCard.tsx
+ * UI region:   compact event card used inside the AdminPage
+ *              sidebar "Events" tab (denser than the dashboard
+ *              version in EventCard.module.css).
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Card container — horizontal row: thumbnail | info block. */
+.card {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  animation: fadeIn 0.25s ease;     /* defined in global.css */
+  cursor: default;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.06);
+}
+/* .interactive is added when the parent passes an onSelect handler so
+ * the card becomes a button. Pointer cursor + a focus-visible outline
+ * round out the affordance for keyboard users. */
+.interactive {
+  cursor: pointer;
+}
+.interactive:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Thumbnail box. `flex-shrink: 0` prevents it from collapsing
+ * when the info column is too wide. */
+.thumb {
+  width: 72px;
+  height: 44px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 10px;
+}
+/* `.thumb img` — descendant selector for the redacted thumbnail.
+ * `object-fit: cover` fills the box, cropping as needed. */
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Info column to the right of the thumbnail.
+ * `min-width: 0` is critical: lets the text truncate with
+ * ellipsis rather than forcing the card wider. */
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Top line: event type + time; wraps on narrow screens. */
+.top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* Event type label. */
+.type {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Timestamp pushed to the right edge of .top. */
+.time {
+  color: var(--muted);
+  font-size: 10px;
+  margin-left: auto;
+  font-family: var(--font-mono);
+}
+
+/* Secondary metadata row (tags, driver id, etc.). */
+.metaRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Short narration sentence, truncated to one line. */
+.narr {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Orientation / SAE-taxonomy badges --------------------------------
+ * Small monospace pills that sit in .top next to the RiskBadge. They
+ * stay subtle — muted palette, thin border, no drop-shadow — so the
+ * severity pill remains the dominant visual signal.
+ */
+.orientationBadge,
+.taxonomyBadge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Per-family taxonomy tint. Border + text get the family color; background
+ * stays the card surface for a muted outlined look. */
+.taxonomy_FCW  { color: var(--medium); border-color: var(--medium); }
+.taxonomy_BSW  { color: var(--accent); border-color: var(--accent); }
+.taxonomy_RCW  { color: var(--high);   border-color: var(--high); }
+.taxonomy_RCTA { color: #fb923c;       border-color: #fb923c; }
+.taxonomy_NONE { color: var(--muted);  border-color: var(--border); }

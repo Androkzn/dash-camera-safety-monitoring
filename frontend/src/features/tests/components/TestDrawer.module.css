@@ -1,0 +1,312 @@
+/* ============================================================
+ * TestDrawer.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/tests/TestDrawer.tsx
+ * UI region:   right-side slide-in drawer listing the pytest
+ *              results by file; summary tiles, a progress bar,
+ *              and per-test rows with error detail.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Dimmed backdrop behind the drawer.
+ * TEACH: `position: fixed` pins to the viewport (ignores scroll).
+ * `inset: 0` is shorthand for top: 0; right: 0; bottom: 0; left: 0;
+ * i.e. stretch to fill the entire viewport.
+ * `z-index` sets stacking order — higher numbers sit on top. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+  opacity: 0;
+  pointer-events: none;              /* block clicks while hidden */
+  transition: opacity 0.25s;
+}
+/* When `.open` is applied (in addition to `.overlay`), reveal it. */
+.overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The drawer itself — pinned to the right edge and off-screen
+ * initially. It slides in via a transform animation.
+ * TEACH: `min(520px, 90vw)` picks the smaller of 520px and 90% of
+ * the viewport width — wide enough to be useful, capped so it
+ * never dominates small screens.
+ * TEACH: cubic-bezier(...) is a custom easing curve; the values
+ * here approximate the Material "standard" curve. */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(520px, 90vw);
+  z-index: 901;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);       /* hidden off the right edge */
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+/* Slide into view when `.open` is toggled by the .tsx. */
+.drawer.open {
+  transform: translateX(0);
+}
+
+/* Drawer header row: title | close button. */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+/* `.head h2` — descendant selector targeting the header title. */
+.head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  flex: 1;                           /* push siblings (close btn) to the right */
+}
+
+/* The "x" close button in the header. */
+.closeBtn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s;
+}
+.closeBtn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* 4-column summary tile grid (total / pass / fail / skip). */
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* One summary tile. */
+.tile {
+  background: #0b0f14;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+/* Tile caption. */
+.tLabel {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tile number. */
+.tValue {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+/* Colour variants via outer modifier classes. */
+.ttotal .tValue {
+  color: var(--text);
+}
+.tpass .tValue {
+  color: var(--green);
+}
+.tfail .tValue {
+  color: var(--high);
+}
+.tskip .tValue {
+  color: var(--muted);
+}
+
+/* Progress row under the summary. */
+.progress {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Outer bar — acts as a gutter. */
+.barWrap {
+  height: 6px;
+  background: #0b0f14;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+/* Inner filled portion. Width is set inline by the .tsx
+ * (e.g. style={{ width: '42%' }}). CSS only animates changes. */
+.barFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;       /* TEACH: transitions animate changes to a property */
+  background: var(--accent);
+}
+/* Final-state colour modifiers. */
+.donePass {
+  background: var(--green);
+}
+.doneFail {
+  background: var(--high);
+}
+
+/* Row of left/right text under the progress bar. */
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Scrollable list of tests grouped by file. */
+.testList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* Empty state (no tests collected yet). */
+.emptyList {
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Wrapper around all tests from one file. */
+.fileGroup {
+  padding: 0 16px;
+  margin-bottom: 4px;
+}
+
+/* File path header above its tests. */
+.fileHeader {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 6px 0 2px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
+}
+
+/* A single test row: icon | name | duration. */
+.testItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.4);
+  font-size: 12px;
+}
+/* Drop trailing divider on last row in group. */
+.testItem:last-child {
+  border-bottom: none;
+}
+
+/* Tiny status icon square. */
+.testIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+/* Status colour classes (applied to .testIcon or .testItem). */
+.passed {
+  color: var(--green);
+}
+.failed {
+  color: var(--high);
+}
+.skipped {
+  color: var(--muted);
+}
+.error {
+  color: var(--medium);
+}
+
+/* Test name — ellipsizes when it is too long. */
+.testName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+/* Monospaced duration ("0.04s") at the right edge. */
+.testDur {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* Expanded error stacktrace under a failed test.
+ * TEACH: `white-space: pre-wrap` preserves newlines + spaces but
+ * also wraps long lines (unlike `pre` which keeps one long line). */
+.testError {
+  padding: 4px 0 4px 24px;
+  font-size: 11px;
+  color: #fca5a5;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-all;             /* break inside long tokens if needed */
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+/* Footer action bar (Run / Stop buttons + elapsed time). */
+.actions {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.actions button {
+  background: var(--accent);
+  color: #0b0f14;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 12px;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+.actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Elapsed time string pushed to the right. */
+.elapsed {
+  color: var(--muted);
+  font-size: 11px;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}

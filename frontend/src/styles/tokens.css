@@ -1,0 +1,66 @@
+/* ============================================================
+ * tokens.css — Design Tokens (single source of visual truth)
+ * ============================================================
+ *
+ * TEACH: What is a "design token"?
+ *   A design token is a NAMED value (color, spacing, radius, font)
+ *   defined once and reused everywhere. Change the token, and every
+ *   component that uses it updates in lock-step. This keeps the
+ *   visual language consistent (e.g. one red for "high severity"
+ *   instead of 12 slightly-different reds scattered across files).
+ *
+ * TEACH: What is :root?
+ *   :root is a CSS pseudo-class that matches the <html> element —
+ *   the highest possible element. Any CSS custom property (variable)
+ *   declared here is inherited by every descendant, i.e. the entire
+ *   page. That is why we put tokens on :root — so they are global.
+ *
+ * TEACH: CSS custom properties (variables)
+ *   Syntax is `--name: value;` to declare, and `var(--name)` to read.
+ *   They are real CSS (no preprocessor needed), update live at runtime,
+ *   and cascade like any other property. Example from a consumer file:
+ *       color: var(--text);
+ *       background: var(--panel);
+ *
+ * TEACH: How this file is wired in
+ *   styles/global.css starts with `@import "./tokens.css";` so these
+ *   variables are defined before any other CSS is parsed. Every
+ *   *.module.css file then references them via var(--...).
+ *
+ * Guideline for the reader: if you see a raw hex color inside a
+ *   *.module.css file (e.g. `color: #86efac`), that is usually an
+ *   exception (one-off accent) — most colors should be tokens.
+ * ============================================================ */
+
+:root {
+  /* --- Colors: surfaces (backgrounds) --- */
+  --bg: #0b0f14;       /* page background — the darkest layer */
+  --panel: #141a22;    /* panel/sidebar surface — one step lighter than --bg */
+  --card: #0d1117;     /* card/row surface inside a panel — sits on --panel */
+  --border: #1f2937;   /* hairline border between surfaces */
+
+  /* --- Colors: text --- */
+  --text: #e5e7eb;     /* primary body text (near-white on dark) */
+  --muted: #9ca3af;    /* secondary/labels/timestamps — lower contrast */
+
+  /* --- Colors: semantic accents --- */
+  --accent: #38bdf8;   /* brand cyan — links, active tab, primary button */
+  --high: #ef4444;     /* severity HIGH — errors, danger, red bubble */
+  --medium: #f59e0b;   /* severity MEDIUM — warnings, amber */
+  --low: #6b7280;      /* severity LOW — muted grey */
+  --green: #22c55e;    /* success/OK state */
+  --green-dim: #14532d;/* subdued green used in dim backgrounds */
+  --red-dim: #7f1d1d;  /* subdued red used in dim backgrounds */
+  --purple: #a78bfa;   /* AI/LLM-related accent (e.g. ai-enriched pill) */
+
+  /* --- Radius (corner rounding) --- */
+  --radius: 10px;      /* default rounded-corner radius for panels/cards */
+
+  /* --- Typography (font stacks) --- */
+  /* TEACH: a font "stack" lists fallbacks left-to-right. The browser
+   * picks the first one the OS has installed. ui-monospace is a modern
+   * alias for "whatever the OS uses as its native monospace font". */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}

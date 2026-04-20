@@ -1,0 +1,153 @@
+/* ============================================================
+ * EventCard.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/events/EventCard.tsx
+ * UI region:   full-width event card used on DashboardPage —
+ *              larger thumbnail, narration + summary text,
+ *              feedback buttons, and a flash highlight for
+ *              newly-arrived events.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Card root. Uses a two-column GRID: fixed 120px thumb | flexible body.
+ * TEACH: `grid-template-columns: 120px 1fr` — first column is a
+ * fixed 120px wide, second column takes one fraction of whatever
+ * remains, i.e. fills the rest of the row. */
+.card {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #0b0f14;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.card:hover {
+  border-color: #2d3748;
+}
+/* .interactive is added when the parent passes an onSelect handler so
+ * the whole card becomes a button that opens the event-detail dialog.
+ * Visual: pointer cursor + a slightly stronger hover/focus border so the
+ * affordance reads as "click me" without screaming. */
+.interactive {
+  cursor: pointer;
+}
+.interactive:hover {
+  border-color: var(--accent);
+}
+.interactive:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* .flash is briefly added by the .tsx when a new event arrives,
+ * producing a subtle cyan glow so the user notices it. */
+.flash {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.08);
+}
+
+/* Thumbnail cell in the left grid column. */
+.thumb {
+  width: 120px;
+  height: 72px;
+  background: #000;
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 10px;
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;                     /* remove inline-image baseline gap */
+}
+
+/* Right-hand text column — stacked rows separated by small gap. */
+.body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* First row: event type + meta badges. */
+.row1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Bold event type label. */
+.etype {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Meta badges row (speed, driver, etc.). */
+.meta {
+  color: var(--muted);
+  font-size: 11px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+/* Separator dot between meta items. */
+.sep {
+  color: #374151;
+}
+
+/* Narration (one-sentence LLM summary), clamped to 2 lines.
+ * TEACH: The `-webkit-line-clamp` trick combines:
+ *   display: -webkit-box  + -webkit-box-orient: vertical
+ *   + -webkit-line-clamp: N + overflow: hidden
+ * to truncate multi-line text after N lines with an ellipsis.
+ * Non-standard but well supported in modern browsers. */
+.narr {
+  font-style: italic;
+  color: #cbd5e1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+/* Paragraph-style summary, also clamped to 2 lines. */
+.summ {
+  color: #cbd5e1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+/* Bottom row: feedback buttons on the left, status on the right. */
+.row3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+/* Informational note shown when ALPR enrichment was skipped for this
+ * event (e.g. degraded perception, low-risk). Muted/italic — this is
+ * normal, expected behaviour, NOT an error. The default-policy skip
+ * reason (`alpr_policy_disabled`) is suppressed in the .tsx because
+ * it would stamp every card. */
+.skipNote {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-style: italic;
+  margin-top: 2px;
+}

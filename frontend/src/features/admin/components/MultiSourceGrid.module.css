@@ -1,0 +1,509 @@
+/* ============================================================
+ * MultiSourceGrid.module.css
+ * ============================================================
+ * Imported by: components/admin/MultiSourceGrid.tsx
+ * UI region:   left column of AdminPage when multiple perception
+ *              sources are configured. One tile per source with
+ *              its own MJPEG feed and start/pause control.
+ * ============================================================ */
+
+/* Outer wrapper: header toolbar above the scrolling grid. */
+.gridWrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 12px;
+  color: var(--muted, #94a3b8);
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+
+.toolbarLabel strong {
+  color: var(--text, #e2e8f0);
+}
+
+.toolbarActions {
+  display: flex;
+  gap: 6px;
+}
+
+.toolbarBtn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text, #e2e8f0);
+  cursor: pointer;
+}
+
+.toolbarBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.toolbarBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Primary emphasis for "Start all" — the dominant operator action when
+ * every tile is paused (first boot, after a global pause). Uses the same
+ * green as the per-tile Start button so the visual language is consistent. */
+.toolbarBtnStart {
+  background: var(--green, #22c55e);
+  color: #042713;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.toolbarBtnStart:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+/* "+ Add stream" trigger — emphasised so operators notice the affordance. */
+.addToggle {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px dashed var(--accent, #38bdf8);
+  background: transparent;
+  color: var(--accent, #38bdf8);
+  cursor: pointer;
+}
+
+.addToggle:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+/* Inline add form, replaces the toggle button when expanded. Wraps to a
+ * second row on narrow screens because the URL input wants real estate. */
+.addForm {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1 1 100%;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.addInput {
+  flex: 1 1 240px;
+  min-width: 180px;
+  padding: 5px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text, #e2e8f0);
+}
+
+.addInputName {
+  flex: 0 1 160px;
+  min-width: 120px;
+}
+
+.addInput:focus {
+  outline: none;
+  border-color: var(--accent, #38bdf8);
+}
+
+.addSubmit {
+  background: var(--accent, #38bdf8);
+  color: #042438;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.addError {
+  flex: 1 1 100%;
+  font-size: 11px;
+  color: var(--high, #ef4444);
+  margin-top: 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+}
+
+/* ----- Focused (maximized) layout -----
+ * Triggered when an operator taps a tile. The chosen source occupies the
+ * primary viewing area; other sources collapse into a horizontal mini
+ * strip beneath so the operator can still glance at them and tap to
+ * swap focus. */
+.focusedLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.focusedSlot {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.focusedSlot > .tile {
+  flex: 1;
+  min-height: 0;
+}
+
+.miniStrip {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+/* Focused tile: video fills available height; meta/actions stay readable
+ * but compact so the feed dominates. */
+.tileFocused .videoWrap {
+  aspect-ratio: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.tileFocused .video {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+}
+
+.tileFocused {
+  border-color: var(--accent, #38bdf8);
+  box-shadow: 0 0 0 1px var(--accent, #38bdf8);
+}
+
+/* "Tap to restore" pill, mirrors the placement pattern of detectionBadge
+ * but anchored bottom-left so it doesn't fight with that badge. */
+.focusedBadge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #e2e8f0;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Minimized tiles: thumbnail-sized video, meta + actions hidden so the
+ * strip stays scannable. Click anywhere on the thumbnail to swap focus. */
+.tileMini {
+  flex: 0 0 160px;
+  width: 160px;
+}
+
+.tileMini .videoWrap {
+  aspect-ratio: 16 / 9;
+}
+
+.tileMini .meta,
+.tileMini .actions,
+.tileMini .removeBtn {
+  display: none;
+}
+
+.tileMini .videoWrap {
+  cursor: pointer;
+}
+
+.tileMini:hover {
+  border-color: var(--accent, #38bdf8);
+}
+
+.empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  flex: 1;
+  border-right: 1px solid var(--border);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel, #0f172a);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 0;
+  transition: opacity 120ms ease, border-color 120ms ease;
+}
+
+/* Detection-disabled tile: dimmed border + slight opacity so it visually
+ * recedes from the active set without disappearing. */
+.tileMuted {
+  opacity: 0.7;
+  border-style: dashed;
+}
+
+/* Pill in the top-left of the video letterbox when detection is off but
+ * the stream is still capturing — clarifies why there are no boxes. */
+.detectionBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fbbf24;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Stream transport mode pill — anchored top-left, nudged down when a
+ * detection-off badge also renders so the two don't overlap. */
+.modeBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Keep detection-off badge stacked below the mode badge when both show. */
+.modeBadge ~ .detectionBadge,
+.modeBadge + .detectionBadge {
+  top: 32px;
+}
+
+.modeBadgeDemo {
+  color: #38bdf8;
+  background: rgba(12, 74, 110, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.modeBadgeLive {
+  color: #22c55e;
+  background: rgba(6, 78, 59, 0.8);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.videoWrap {
+  position: relative;
+  background: #000;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.videoWrap:focus-visible {
+  outline: 2px solid var(--accent, #38bdf8);
+  outline-offset: -2px;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.placeholder {
+  color: #475569;
+  font-size: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+/* Centered "Paused" overlay shown on top of the frozen last frame while
+ * the stream is paused. Translucent backdrop keeps the video visible
+ * underneath so the operator sees *what* was paused, not a blank tile. */
+.pausedBadge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 14px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.statusDot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+.dotRunning {
+  background: var(--green, #22c55e);
+}
+
+.dotPaused {
+  background: var(--muted, #64748b);
+}
+
+/* Top-right "remove tile" affordance. Subtle by default, brightens on
+ * hover so operators don't accidentally swat it. */
+.removeBtn {
+  position: absolute;
+  top: 6px;
+  right: 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.removeBtn:hover {
+  background: var(--high, #ef4444);
+  color: #fff;
+}
+
+.meta {
+  padding: 8px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.metaTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 13px;
+  color: var(--text, #e2e8f0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.host {
+  font-size: 10px;
+  color: var(--muted, #64748b);
+  white-space: nowrap;
+}
+
+.metaStats {
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--muted, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+
+.warn {
+  color: var(--medium, #f59e0b);
+}
+
+.actions {
+  padding: 0 10px 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.detectionToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted, #94a3b8);
+  cursor: pointer;
+  user-select: none;
+  margin-right: auto;
+}
+
+.detectionToggle input {
+  cursor: pointer;
+  accent-color: var(--accent, #38bdf8);
+}
+
+.btn {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: opacity 120ms ease, background 120ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.btnStart {
+  background: var(--green, #22c55e);
+  color: #042713;
+  border-color: transparent;
+}
+
+.btnPause {
+  background: transparent;
+  color: var(--text, #e2e8f0);
+}
+
+.btnPause:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}

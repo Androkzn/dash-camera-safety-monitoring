@@ -1,0 +1,917 @@
+/* ============================================================
+ * MonitoringPage.module.css
+ * ============================================================
+ * Imported by: frontend/src/pages/MonitoringPage.tsx
+ * UI region:   the Monitoring route — the watchdog "incident
+ *              queue" page. Header with summary tiles, a meta
+ *              grid of ownership/status, a selection bar, and
+ *              grouped incident cards with runbooks, evidence,
+ *              and commands.
+ *
+ * This is the largest stylesheet in the app, so you'll find many
+ * reusable patterns here: severity-coded side borders, linear
+ * gradients layered with a solid fill, responsive column
+ * collapses, and hover-reveal trash buttons.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Root page flex container — fills remaining viewport height. */
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Header block (title + summary + meta grid). `flex-shrink: 0`
+ * keeps it at natural height while the content below scrolls. */
+.header {
+  padding: 20px 24px 0;
+  flex-shrink: 0;
+}
+
+/* Row holding page title on the left and action buttons on the right. */
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Main <h1>. Reset default browser margin. */
+.titleRow h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Subtitle paragraph under the title.
+ * `max-width` caps line length so paragraphs stay readable. */
+.subtitle {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  max-width: 720px;
+  line-height: 1.55;
+}
+
+/* Buttons on the right side of the title row. */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Header action button (e.g. Refresh). Same pattern used in WatchdogDrawer. */
+.actionBtn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.actionBtn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.actionBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Destructive red-tinted variant (Clear all). */
+.clearBtn {
+  color: var(--high);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.clearBtn:hover {
+  border-color: var(--high);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--high);
+}
+
+/* 4-up summary tile grid (Errors / Warnings / Info / Total).
+ * TEACH: `minmax(0, 1fr)` is the bulletproof fraction for grid
+ * columns — it behaves like `1fr` but with `min-size: 0`, which
+ * allows long content inside to truncate instead of forcing
+ * the column to grow past its share. Prefer it over plain `1fr`
+ * when you also use `overflow: hidden` / `text-overflow`. */
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* A single summary tile with a layered gradient background.
+ * TEACH: `background` accepts COMMA-SEPARATED layers drawn top-
+ * to-bottom (first layer on top). Here a subtle white gradient
+ * sits atop the solid --panel fill for a glassy highlight.
+ * TEACH: `transition: all 0.18s` animates every animatable prop
+ * on change — convenient but imprecise; prefer naming props in
+ * production code. */
+.tile {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+    var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.18s;
+  user-select: none;
+  opacity: 0.72;                    /* dimmed until active */
+}
+
+/* TEACH: `transform: translateY(-1px)` slides the element up 1px
+ * on hover without affecting layout — lightweight "lift" effect. */
+.tile:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Active tile — currently-selected severity filter.
+ * Per-variant colored border, glow, and a top accent bar make the
+ * selected state unmistakable at a glance. */
+.tileActive {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.tileActive.terror {
+  border-color: var(--high);
+  background:
+    radial-gradient(circle at top, rgba(239, 68, 68, 0.22), transparent 65%),
+    linear-gradient(180deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.04)),
+    var(--panel);
+  box-shadow:
+    0 0 0 1px var(--high) inset,
+    0 12px 30px rgba(239, 68, 68, 0.25);
+}
+
+.tileActive.twarning {
+  border-color: var(--medium);
+  background:
+    radial-gradient(circle at top, rgba(245, 158, 11, 0.22), transparent 65%),
+    linear-gradient(180deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.04)),
+    var(--panel);
+  box-shadow:
+    0 0 0 1px var(--medium) inset,
+    0 12px 30px rgba(245, 158, 11, 0.22);
+}
+
+.tileActive.tinfo {
+  border-color: var(--accent);
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.22), transparent 65%),
+    linear-gradient(180deg, rgba(56, 189, 248, 0.10), rgba(56, 189, 248, 0.04)),
+    var(--panel);
+  box-shadow:
+    0 0 0 1px var(--accent) inset,
+    0 12px 30px rgba(56, 189, 248, 0.22);
+}
+
+.tileActive.ttotal {
+  border-color: rgba(255, 255, 255, 0.35);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.10), transparent 65%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    var(--panel);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* Accent bar slides in from the top of the active tile. */
+.tileActive::before {
+  content: "";
+  position: absolute;
+  inset: 0 14px auto 14px;
+  top: -1px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: currentColor;
+}
+
+.tileActive.terror::before {
+  background: var(--high);
+}
+.tileActive.twarning::before {
+  background: var(--medium);
+}
+.tileActive.tinfo::before {
+  background: var(--accent);
+}
+.tileActive.ttotal::before {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Bolder label on the active tile so the caption "pops" too. */
+.tileActive .tLabel {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* Tile caption. */
+.tLabel {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+/* Tile big number. */
+.tValue {
+  font-size: 24px;
+  font-weight: 800;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Severity colour modifiers for .tValue (applied to outer tile). */
+.terror .tValue {
+  color: var(--high);
+}
+
+.twarning .tValue {
+  color: var(--medium);
+}
+
+.tinfo .tValue {
+  color: var(--accent);
+}
+
+.ttotal .tValue {
+  color: var(--text);
+}
+
+/* Secondary 3-up meta grid under the summary row
+ * (who-owns, status, ETA etc.). */
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* One meta card. */
+.metaCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Descendant selectors for meta card children. */
+.metaCard strong {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.metaCard span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Label style override used on .metaCard span (forces accent).
+ * `!important` wins over the generic `.metaCard span` rule. */
+.metaLabel {
+  color: var(--accent) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-size: 10px !important;
+}
+
+/* Inline show-low toggle — rendered next to the header buttons. */
+.showLow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  margin-right: 4px;
+}
+
+/* Bulk-selection bar — appears under the header when findings are selected. */
+.selectionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  background: rgba(56, 189, 248, 0.06);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+  flex-shrink: 0;
+}
+
+/* TEACH: `.selectionInfo, .selectionActions` — COMMA-SEPARATED
+ * selector list. Both receive the same rules without duplication. */
+.selectionInfo,
+.selectionActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selectionInfo {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* Small pill button used inside .selectionBar. */
+.selBarBtn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.selBarBtn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.selBarBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Red variant of .selBarBtn for destructive bulk delete. */
+.deleteBtn {
+  color: var(--high);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.deleteBtn:hover:not(:disabled) {
+  border-color: var(--high);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--high);
+}
+
+/* Scrollable content region (incident queue + feed). */
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
+}
+
+/* Section wrapper margins (shared between queue and feed sections). */
+.queueSection,
+.feedSection {
+  margin-bottom: 18px;
+}
+
+/* Small section header ("QUEUE", "FEED"). */
+.sectionHeader {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 10px;
+}
+
+/* 3-up queue grid. */
+.queueGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* A queue card (short summary of one incident).
+ * TEACH: `radial-gradient(circle at top right, ...)` draws a
+ * circular gradient. Layering it atop `var(--panel)` gives each
+ * card a soft glow in the corner — purely decorative. */
+.queueCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  padding: 14px 15px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 42%),
+    var(--panel);
+  cursor: pointer;
+  transition: transform 0.16s, border-color 0.16s;
+}
+
+.queueCard:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Severity pill at the top of each queue card. */
+.queueSeverity {
+  align-self: flex-start;            /* pill does not stretch to full width */
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Severity-coloured pill backgrounds via compound selectors. */
+.queueCard.error .queueSeverity {
+  color: var(--high);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.queueCard.warning .queueSeverity {
+  color: var(--medium);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.queueCard.info .queueSeverity {
+  color: var(--accent);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+/* Queue card title. */
+.queueTitle {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* Grouped selectors — "next step" and "meta" share the same
+ * muted typography. */
+.queueNext,
+.queueMeta {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* Empty-state placeholder with a dashed border. */
+.emptyList {
+  padding: 56px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Vertical list of incident cards in the feed section. */
+.incidentList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Full incident card (expanded detail). Similar layered-gradient
+ * treatment as .tile — gives visual hierarchy vs queue cards. */
+.incidentCard {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+    var(--panel);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.incidentCard:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Severity-coded left border (4px) — same pattern as
+ * WatchdogDrawer .findingItem. */
+.incidentCard.error {
+  border-left: 4px solid var(--high);
+}
+
+.incidentCard.warning {
+  border-left: 4px solid var(--medium);
+}
+
+.incidentCard.info {
+  border-left: 4px solid var(--accent);
+}
+
+/* Applied in addition to .incidentCard when bulk-selection is on. */
+.selectable {
+  cursor: pointer;
+}
+
+.selectable:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+/* Currently-selected card highlight. `!important` wins against
+ * the severity border colour; the layered radial gradient adds
+ * a cyan halo at top right. */
+.selected {
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 42%),
+    var(--panel);
+}
+
+/* Top row inside an incident card: left-side info + right-side actions. */
+.incidentHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Left block of header row — checkbox + severity icon + title. */
+.incidentHeaderLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Selection checkbox — slightly larger than the drawer's version. */
+.checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: transparent;
+  transition: all 0.15s;
+  margin-top: 2px;                   /* optically aligns with the title baseline */
+}
+
+.checkbox.checked {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+/* Severity icon square to the left of the title. */
+.sevIcon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 7px;
+  margin-top: 1px;
+}
+
+.sevIcon.error {
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--high);
+}
+
+.sevIcon.warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--medium);
+}
+
+.sevIcon.info {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--accent);
+}
+
+/* Title block wrapping the title + meta pills. */
+.incidentTitleBlock {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Row holding the title and meta pills together. */
+.incidentTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* The incident title. */
+.incidentTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Horizontal list of small meta pills next to the title. */
+.metaPills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Base pill style for meta tags. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Amber "repeat offender" pill variant. */
+.repeatPill {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+/* Purple "AI-enriched" pill variant. */
+.aiPill {
+  color: var(--purple);
+  background: rgba(167, 139, 250, 0.12);
+}
+
+/* Thin timeline row under the title (first seen, last seen, etc.). */
+.incidentTimeline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Highlighted "next step" call-out box under the header.
+ * Uses a horizontal cyan linear-gradient to stand out. */
+.nextStepBox {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.10), rgba(56, 189, 248, 0.03));
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Shared label style for section headings inside an incident
+ * (next step / summary / block). */
+.nextStepLabel,
+.summaryLabel,
+.blockLabel {
+  font-size: 10px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-weight: 700;
+}
+
+/* `strong` inside the next-step box = body text of the next action. */
+.nextStepBox strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 3-up summary panel (impact / cause / owner). */
+.summaryPanel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* Shared card style for summary + section block. */
+.summaryCard,
+.sectionBlock {
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Body text inside the summary cards / runbook block. */
+.summaryCard p,
+.runbook {
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.65;
+  font-size: 12px;
+}
+
+/* Standalone section block (evidence, steps, commands container). */
+.sectionBlock {
+  margin-top: 12px;
+}
+
+/* Evidence grid — auto-fits as many ~180px-min columns as fit.
+ * TEACH: `repeat(auto-fit, minmax(180px, 1fr))` creates a
+ * RESPONSIVE grid with no media queries — columns auto-wrap to
+ * a new row when the viewport is too narrow to fit another 180px
+ * slot. `auto-fit` collapses empty tracks; `auto-fill` leaves
+ * them empty. This is the go-to pattern for card grids. */
+.evidenceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* One evidence chip (label + value). */
+.evidenceChip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Evidence chip variants — neutral context / red breach / cyan trend. */
+.evidenceContext {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.evidenceBreach {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.16);
+}
+
+.evidenceTrend {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.16);
+}
+
+/* Small labels inside an evidence chip (grouped selector). */
+.evidenceLabel,
+.evidenceThreshold {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* The actual evidence value (bolder, brighter). */
+.evidenceValue {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Bullet-list of remediation steps. Uses default list bullets;
+ * `padding-left` indents the marker from the card edge. */
+.stepsList {
+  margin-top: 10px;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+/* `.stepsList li` — descendant selector for individual bullets. */
+.stepsList li {
+  margin-bottom: 7px;
+  line-height: 1.6;
+}
+
+/* Vertical list of recommended debug commands. */
+.commandsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* One terminal-command chip. `overflow-x: auto` + `white-space:
+ * nowrap` makes long commands horizontally scrollable instead
+ * of wrapping — handy for commands you want to copy verbatim. */
+.commandChip {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0a1017;
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  color: #d7f3ff;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+/* Green-tinted runbook summary box. */
+.runbook {
+  margin-top: 12px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.12);
+}
+
+/* Per-card trash button — hidden until the card is hovered. */
+.deleteSingle {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  opacity: 0;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+/* Reveal trash button on card hover (same idiom as WatchdogDrawer). */
+.incidentCard:hover .deleteSingle {
+  opacity: 1;
+}
+
+.deleteSingle:hover {
+  color: var(--high);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ---- Responsive breakpoints ------------------------------------------- */
+
+/* TEACH: multiple media queries stack cumulatively; rules apply
+ * when the condition matches. Under 1100px we switch the 3-up
+ * and 4-up grids to 2-up so cards stay legible. */
+@media (max-width: 1100px) {
+  .summaryGrid,
+  .metaGrid,
+  .queueGrid,
+  .summaryPanel {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Phone-size breakpoint: fully stack everything and force
+ * column layout inside row elements. */
+@media (max-width: 820px) {
+  .header,
+  .content,
+  .selectionBar {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .titleRow,
+  .selectionBar,
+  .incidentHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summaryGrid,
+  .metaGrid,
+  .queueGrid,
+  .summaryPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .incidentTimeline {
+    gap: 8px;
+  }
+
+  /* On small screens show the trash button always — hover reveal
+   * does not work on touch devices. `align-self: flex-end` pushes
+   * it to the right edge of the now-vertical header. */
+  .deleteSingle {
+    opacity: 1;
+    align-self: flex-end;
+  }
+}

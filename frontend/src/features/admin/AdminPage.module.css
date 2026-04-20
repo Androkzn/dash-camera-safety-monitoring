@@ -1,0 +1,99 @@
+/* ============================================================
+ * AdminPage.module.css
+ * ============================================================
+ * Imported by: frontend/src/pages/AdminPage.tsx
+ * UI region:   the Admin route's overall page layout —
+ *              left column holds the live video feed and health
+ *              strip, right column (380px) holds the TabBar with
+ *              detections / history / events.
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Two-column page grid. Left column flexes; right column is a
+ * fixed 380px sidebar. */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  grid-template-rows: 1fr;
+  flex: 1;
+  min-height: 0;                     /* enables inner scroll regions */
+  gap: 0;
+}
+
+/* TEACH: `@media (max-width: N)` is a "media query" — the rules
+ * inside only apply when the viewport is at most N wide. It's
+ * the core tool for responsive design. Here, under 1100px we
+ * collapse to a single stacked column: video on top, sidebar
+ * below. */
+@media (max-width: 1100px) {
+  .main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+}
+
+/* The right-hand sidebar wrapper. */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Padding for the inline events list rendered inside the sidebar. */
+.evtList {
+  padding: 10px 12px;
+}
+
+/* Small control bar above the events list (show-low checkbox). */
+.evtControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 12px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.evtControls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Empty-state placeholder for the event list. */
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 40px 16px;
+  font-size: 12px;
+}
+
+/* Left column: stacks the live grid on top and (when a dashcam source
+ * is primary) the vehicle map beneath it. Uses the whole column height
+ * so inner scroll regions still work. */
+.leftCol {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* The map panel sits in the left column directly beneath the live grid.
+ * A fixed min/max keeps it from collapsing under Leaflet's flex quirks
+ * or ballooning when the viewport is tall. */
+.mapSlot {
+  flex: 0 0 360px;
+  min-height: 280px;
+  max-height: 45%;
+  padding: 0 12px 12px;
+  display: flex;
+}
+
+.mapSlot > * {
+  flex: 1;
+  min-width: 0;
+}

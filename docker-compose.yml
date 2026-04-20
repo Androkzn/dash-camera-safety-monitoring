@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${ROAD_PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      - app-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/admin/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
+  cloud-receiver:
+    build: .
+    command: ["python", "-m", "uvicorn", "cloud.receiver:app", "--host", "0.0.0.0", "--port", "8001", "--log-level", "info"]
+    ports:
+      - "${ROAD_CLOUD_PORT:-8001}:8001"
+    env_file:
+      - .env
+    volumes:
+      - cloud-data:/app/data
+    restart: unless-stopped
+    profiles:
+      - cloud
+
+volumes:
+  app-data:
+  cloud-data:

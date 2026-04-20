@@ -1,0 +1,61 @@
+/* ============================================================
+ * SummaryTiles.module.css
+ * ============================================================
+ * Imported by: frontend/src/components/dashboard/SummaryTiles.tsx
+ * UI region:   row of four KPI tiles at the top of DashboardPage
+ *              (e.g. "High risk", "Medium risk", "Events 24h",
+ *              "Active vehicles").
+ * (See global.css header for CSS Modules scoping notes.)
+ * ============================================================ */
+
+/* Grid holding the four tiles.
+ * TEACH: display: grid = 2D layout. grid-template-columns defines
+ * the column sizes. `repeat(4, 1fr)` = four columns each taking
+ * 1 fraction of the available space (i.e. equal widths). */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* A single tile card. */
+.tile {
+  background: #0b0f14;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  transition: border-color 0.2s;
+}
+.tile:hover {
+  border-color: #2d3748;
+}
+
+/* Small uppercase caption above the number. */
+.label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-weight: 600;
+}
+
+/* Big KPI number. Tabular-nums keeps digit widths even. */
+.value {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Severity-colored .value via a parent modifier class.
+ * TEACH: `.high .value` — same descendant-combinator pattern as
+ * PerceptionBanner's `.degraded .lbl`. The outer tile gets .high
+ * (or .medium) applied, and that recolors the inner .value. */
+.high .value {
+  color: var(--high);
+}
+.medium .value {
+  color: var(--medium);
+}

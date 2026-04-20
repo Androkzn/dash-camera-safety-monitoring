@@ -1,0 +1,132 @@
+.wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-height: 320px;
+  height: 100%;
+}
+
+.map {
+  flex: 1;
+  min-height: 320px;
+  width: 100%;
+  /* Leaflet's default pane background is white; match the dark theme. */
+  background: var(--bg);
+}
+
+/* Leaflet tile pane's default attribution/zoom colors read poorly on
+ * dark tiles. Tweak just enough so the controls don't look broken. */
+.map :global(.leaflet-container) {
+  background: var(--bg);
+  font-family: inherit;
+}
+.map :global(.leaflet-control-attribution) {
+  background: rgba(20, 26, 34, 0.85) !important;
+  color: var(--muted) !important;
+  font-size: 10px;
+}
+.map :global(.leaflet-control-attribution a) {
+  color: var(--accent) !important;
+}
+.map :global(.leaflet-bar a) {
+  background: var(--panel);
+  color: var(--text);
+  border-bottom-color: var(--border);
+}
+.map :global(.leaflet-bar a:hover) {
+  background: var(--card);
+}
+
+/* Anchored top-right so it can't collide with Leaflet's default zoom
+ * control (top-left). ``z-index: 500`` keeps the badge above tile and
+ * marker panes (Leaflet's own controls sit at 800+, which is fine — we
+ * never want the badge to cover the zoom buttons). */
+.badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
+  background: rgba(20, 26, 34, 0.92);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  min-width: 180px;
+  max-width: calc(100% - 72px);
+  color: var(--text);
+  font-size: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.plate {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.model {
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.company {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.speed {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.speedValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.speedUnit {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 320px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 24px;
+}
+
+/* Arrow marker — rotated by inline transform, so we only style size/color. */
+.arrowIcon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.arrowIcon svg {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
