@@ -83,7 +83,7 @@ Research shows multimodal LLMs generate hallucinatory content when visual input 
 
 ### The Challenge
 
-Road cameras capture faces, license plates, and location data — all classified as PII under GDPR and CCPA. Cumulative GDPR enforcement has exceeded €5.8 billion across 2,245+ actions since 2018, with individual penalties reaching €1.2 billion (Meta, 2025). License plates create tracking profiles that trigger data protection obligations. Driver-facing cameras raise biometric data concerns in jurisdictions requiring explicit consent. Organizations must demonstrate what personal data they hold, who accessed it, and when (GDPR Art. 30).
+In-vehicle dashcams capture faces, license plates, and location data — all classified as PII under GDPR and CCPA. Cumulative GDPR enforcement has exceeded €5.8 billion across 2,245+ actions since 2018, with individual penalties reaching €1.2 billion (Meta, 2025). License plates create tracking profiles that trigger data protection obligations. Driver-facing cameras raise biometric data concerns in jurisdictions requiring explicit consent. Organizations must demonstrate what personal data they hold, who accessed it, and when (GDPR Art. 30).
 
 ### How We Address It
 

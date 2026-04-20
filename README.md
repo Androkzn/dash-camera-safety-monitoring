@@ -2,8 +2,6 @@
 
 Real-time conflict detection for **multi-camera in-vehicle fleet dashcams**. Each vehicle runs its own edge node over N on-board cameras (front, rear, left, right — as many as the vehicle is wired for) and analyzes every feed in parallel: YOLO tracking, multi-gate TTC, depth-aware proximity, and scene-adaptive thresholds. Risk is scored, PII is redacted on-device, and only typed events + redacted thumbnails leave the vehicle.
 
-There are **no road-side, intersection, or infrastructure cameras** anywhere in the design. Everything is bolted to the car.
-
 Built for the hard parts of production: running N cameras simultaneously on modest edge hardware, suppressing false positives without missing real incidents, surviving LLM outages gracefully, staying GDPR/CCPA-compliant by default, and catching model drift before it goes silent.
 
 This is a **building block** for fleet safety platforms, not a complete commercial product. DMS (driver-facing camera), clip export, telematics fusion, and ELD are deliberately out of scope — see [Out of scope](#out-of-scope-deliberately) for what's missing and how to extend.
@@ -12,9 +10,15 @@ This is a **building block** for fleet safety platforms, not a complete commerci
 
 ## Demo
 
-The clip below shows the **multi-source admin grid** running a three-camera Nissan Rogue setup (front, rear, left) on demo footage. Each tile is an independent perception pipeline: the same detection stack runs N times in parallel, one per installed camera, with per-slot calibration so a 0.5× ultra-wide rear lens doesn't read distances the way a 1× front lens does. Operators can pause detection per tile (without killing the feed), watch the tile they care about in focus mode, and see live FPS / CPU impact as thresholds are tuned in the Settings console — all without restarting the server.
+A three-camera Nissan Rogue setup (front, rear, left) running on recorded dashcam footage. The clip walks through the five operator pages:
 
-![Multi-camera demo](demo.gif)
+1. **Admin** — live multi-source grid, one tile per installed camera with an independent perception pipeline (YOLO + ByteTrack + multi-gate TTC), per-slot detection toggle, and focus-mode for the tile you care about.
+2. **Dashboard** — fleet overview: vehicles, drivers, safety scores, event timeline, and a GPS track replayed in sync with the dashcam video.
+3. **Monitoring** — watchdog incident queue: repeated findings grouped into fingerprinted incidents with impact, likely cause, evidence, and debug commands.
+4. **Validation** — shadow-mode validator comparing the live detector against a heavier reference, with disputes and drift trend.
+5. **Settings** — runtime-tunable console: change `TARGET_FPS` and gate thresholds with apply/rollback and live FPS/CPU deltas, no restart.
+
+![Fleet-safety walkthrough](demo.gif)
 
 ---
 
