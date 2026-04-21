@@ -174,6 +174,7 @@ from road_safety.core.validator import (
     ValidatorJob,
     ValidatorWorker,
 )
+from road_safety.core import shadow_analysis, shadow_store
 from road_safety.core.quality import QualityMonitor
 from road_safety.core.context import SceneContextClassifier
 from road_safety.core.egomotion import EgoMotionEstimator
@@ -3519,6 +3520,208 @@ async def validator_toggle(request: Request):
     state.validator.set_paused(not enabled)
     log.info("validator %s by operator", "resumed" if enabled else "paused")
     return {"enabled": True, **state.validator.status()}
+
+
+# ===== SECTION: SHADOW-ONLY DETECTION ENDPOINTS =====
+# Each ``validator/false-negative`` finding has a companion shadow record
+# (saved frame + detection snapshot) so the Validation UI can:
+#   * open the same EventDialog it uses for primary events,
+#   * explain *why* the primary missed with a per-gate diagnostic,
+#   * re-run the primary detector on that exact frame on-demand,
+#   * promote the pair into the live event buffer.
+#
+# Identifier model: ``shadow_id`` == parent finding's ``snapshot_id`` —
+# the operator can map a shadow row in the UI directly to a stored
+# record without a separate lookup table.
+
+
+def _lookup_shadow_record(shadow_id: str):
+    """Fetch a shadow record or raise ``404`` so every route shares one
+    not-found shape. Route handlers never have to replicate the lookup
+    error-handling dance."""
+    record = shadow_store.load(shadow_id)
+    if record is None:
+        raise HTTPException(404, "shadow record not found")
+    return record
+
+
+@app.get("/api/shadow/{shadow_id}")
+def shadow_record(shadow_id: str):
+    """Full shadow record backing a ``validator/false-negative`` finding.
+
+    HTTP: GET /api/shadow/{shadow_id}
+    AUTH: public (metadata only; the JPEG is redacted at save time and
+        served through the normal ``/thumbnails/{name}`` route).
+    Returns: ``ShadowRecord.as_dict()`` — event_type, secondary_risk,
+        distance metrics, pair + detection snapshots, thumbnail URL.
+    Raises: 404 when the record is missing (never saved / rotated out).
+    """
+    return _lookup_shadow_record(shadow_id).as_dict()
+
+
+@app.get("/api/shadow/{shadow_id}/analysis")
+def shadow_analysis_route(shadow_id: str):
+    """Per-gate miss-reason diagnostic for the shadow pair.
+
+    HTTP: GET /api/shadow/{shadow_id}/analysis
+    AUTH: public (pure math over the stored record; no pixels leave).
+    Returns: ``ShadowAnalysis.as_dict()`` — a headline ``miss_reason``
+        plus one :class:`GateVerdict` per primary gate the analysis
+        can replay offline. Convergence / TTC / ego-motion / sustained-
+        risk gates are *not* checkable offline and are disclosed as such.
+    Raises: 404 when the record is missing.
+    """
+    record = _lookup_shadow_record(shadow_id)
+    analysis = shadow_analysis.analyze(record)
+    return shadow_analysis.analysis_to_dict(analysis)
+
+
+@app.post("/api/shadow/{shadow_id}/rerun")
+def shadow_rerun(request: Request, shadow_id: str):
+    """Re-run the primary detector on the stored frame.
+
+    HTTP: POST /api/shadow/{shadow_id}/rerun
+    AUTH: admin Bearer (model-compute budget, not a public-surface op).
+    Returns: ``{stored_primary, rerun_primary}`` — both as lists of
+        detection dicts, so the UI can render a side-by-side diff.
+    Raises: 404 (record missing), 503 (model not loaded), 500 (inference
+        error).
+
+    Determinism note: re-run uses ``persistent=False`` (no ByteTrack
+    state) so results are driven purely by the stored pixels and the
+    current ``ROAD_MODEL_PATH`` — they are stable under process restarts
+    with the same weights + same accelerator, but may shift slightly
+    when the accelerator changes (mps vs cpu). The UI surfaces this as
+    "observed on {device}" so operators interpret drift correctly.
+    """
+    require_bearer_token(
+        request, ADMIN_TOKEN, realm="shadow", env_var="ROAD_ADMIN_TOKEN",
+    )
+    record = _lookup_shadow_record(shadow_id)
+    if state.model is None:
+        raise HTTPException(503, "primary model not loaded")
+    frame = shadow_store.read_frame(shadow_id)
+    if frame is None:
+        raise HTTPException(404, "shadow frame not available on disk")
+    try:
+        dets = detect_frame(state.model, frame, persistent=False)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("shadow rerun failed for %s: %s", shadow_id, exc)
+        raise HTTPException(500, f"rerun inference failed: {exc}")
+    rerun_dump = [
+        {
+            "cls": d.cls,
+            "conf": float(d.conf),
+            "x1": int(d.x1), "y1": int(d.y1),
+            "x2": int(d.x2), "y2": int(d.y2),
+            "track_id": d.track_id,
+        }
+        for d in dets
+    ]
+    return {
+        "shadow_id": shadow_id,
+        "stored_primary": record.primary_detections,
+        "rerun_primary": rerun_dump,
+    }
+
+
+@app.post("/api/shadow/{shadow_id}/promote")
+async def shadow_promote(request: Request, shadow_id: str):
+    """Promote a shadow pair into the live event buffer + SSE stream.
+
+    HTTP: POST /api/shadow/{shadow_id}/promote
+    AUTH: admin Bearer (touches the public event stream, audit log,
+        registry + cloud publisher — never left open to the public).
+    Returns: ``{promoted_event_id, event}`` — the newly-emitted event
+        as stored on ``state.recent_events``.
+    Raises: 404 (record missing), 409 (already promoted this shadow id).
+
+    The promoted event is tagged with ``source="shadow_promoted"`` and
+    carries ``enrichment_skipped="shadow_promoted"`` so downstream
+    consumers (safety-score model, Slack templates, dashboards) can
+    separate operator-promoted events from primary detections — this
+    keeps the precision signal for the primary detector honest.
+    """
+    require_bearer_token(
+        request, ADMIN_TOKEN, realm="shadow", env_var="ROAD_ADMIN_TOKEN",
+    )
+    record = _lookup_shadow_record(shadow_id)
+
+    promoted_event_id = f"shadow_{shadow_id}"
+    # Idempotency: a second click must not double-emit.
+    for ev in state.recent_events:
+        if ev.get("event_id") == promoted_event_id:
+            raise HTTPException(409, "shadow already promoted")
+
+    pair = record.secondary_pair
+    if len(pair) < 2:
+        raise HTTPException(500, "shadow record pair is malformed")
+    a, b = pair[0], pair[1]
+
+    slot = state.slots.get(record.slot_id)
+    source_name = slot.name if slot is not None else record.slot_id
+
+    event = {
+        "event_id": promoted_event_id,
+        "source_id": record.slot_id,
+        "source_name": source_name,
+        "vehicle_id": RESOLVED_VEHICLE_ID,
+        "road_id": RESOLVED_ROAD_ID,
+        "driver_id": RESOLVED_DRIVER_ID,
+        "timestamp_sec": None,
+        "wall_time": datetime.now(timezone.utc)
+            .isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "event_type": record.event_type,
+        "internal_event_type": record.event_type,
+        "risk_level": record.secondary_risk or "medium",
+        "peak_risk_level": record.secondary_risk or "medium",
+        "risk_demoted": False,
+        "frame_count": 1,
+        "confidence": round((float(a.get("conf", 0)) + float(b.get("conf", 0))) / 2.0, 3),
+        "objects": sorted({str(a.get("cls", "")), str(b.get("cls", ""))}),
+        "track_ids": [],
+        "episode_duration_sec": 0.0,
+        "ttc_sec": None,
+        "distance_m": record.distance_m,
+        "distance_px": round(float(record.distance_px), 1),
+        "scene_context": None,
+        "ego_flow": None,
+        "summary": (
+            f"Shadow-promoted {record.event_type.replace('_', ' ')} "
+            f"({record.secondary_risk} risk) — secondary detector flagged, "
+            "primary missed; operator promoted."
+        ),
+        "narration": None,
+        "thumbnail": record.thumbnail,
+        "source": "shadow_promoted",
+        "enrichment_skipped": "shadow_promoted",
+        "shadow_id": shadow_id,
+    }
+
+    # Route through the same emit path as primary events so
+    # SSE / registry / cloud publisher all stay consistent. The public
+    # thumbnail already lives under THUMBS_DIR — we pass the same name
+    # for internal so the path resolves, but enrichment is skipped via
+    # the flag above so we never actually read pixels for ALPR.
+    internal_thumb_name = Path(record.thumbnail).name
+    await _emit_event(event, internal_thumb_name)
+
+    audit.log(
+        action="shadow_promote",
+        resource=promoted_event_id,
+        actor="operator",
+        detail={
+            "shadow_id": shadow_id,
+            "slot_id": record.slot_id,
+            "event_type": record.event_type,
+            "risk_level": record.secondary_risk,
+        },
+    )
+    log.info(
+        "shadow promoted to event: shadow_id=%s event_id=%s slot=%s",
+        shadow_id, promoted_event_id, record.slot_id,
+    )
+    return {"promoted_event_id": promoted_event_id, "event": event}
 
 
 @app.get("/api/watchdog/recent")

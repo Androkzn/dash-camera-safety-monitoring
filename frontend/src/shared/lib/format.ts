@@ -19,6 +19,19 @@ export function humanEventType(t?: string): string {
     .replace(/^\w/, (c) => c.toUpperCase());
 }
 
+/**
+ * "image_degraded" → "Image degraded". General snake_case humanizer for
+ * enum-ish backend values (perception_state, perception_reason, scene
+ * context labels, etc.). Returns "—" for empty input so call sites can
+ * render it directly without null-checking.
+ */
+export function humanize(value?: string | null): string {
+  if (!value) return "—";
+  return value
+    .replace(/_/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
+
 /** "2h 07m" or "04:22" depending on duration. */
 export function formatUptime(secs?: number | null): string {
   if (secs == null || secs < 0) return "—";

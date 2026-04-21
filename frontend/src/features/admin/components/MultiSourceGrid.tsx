@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 
 import type { UseLiveSourcesResult } from "../hooks/useLiveSources";
 import type { LiveSourceStatus } from "../../../shared/types/common";
+import { humanize } from "../../../shared/lib/format";
 import { useDialog } from "../../../shared/ui";
 
 import styles from "./MultiSourceGrid.module.css";
@@ -177,7 +178,7 @@ function StreamTile({
           {source.perception_state && source.perception_state !== "nominal" && (
             <>
               <span>•</span>
-              <span className={styles.warn}>{source.perception_state}</span>
+              <span className={styles.warn}>{humanize(source.perception_state)}</span>
             </>
           )}
         </div>

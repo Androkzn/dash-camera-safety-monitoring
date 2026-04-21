@@ -66,7 +66,7 @@ class TestDefaults:
         assert len(SERVER_HOST) > 0
 
     def test_server_port_default(self):
-        assert SERVER_PORT == 8000
+        assert SERVER_PORT == 3000
 
     def test_vehicle_id_is_string(self):
         assert isinstance(VEHICLE_ID, str)

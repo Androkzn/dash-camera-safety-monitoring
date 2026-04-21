@@ -49,9 +49,20 @@ export interface ConfirmOptions extends AlertOptions {
   cancelLabel?: string;
 }
 
+export interface PromptOptions extends ConfirmOptions {
+  /** Placeholder shown in the empty input. */
+  placeholder?: string;
+  /** Pre-filled value when the dialog opens. */
+  initialValue?: string;
+  /** HTML input type — use "password" to mask tokens/secrets. */
+  inputType?: "text" | "password";
+}
+
 export interface DialogApi {
   alert: (opts: AlertOptions) => Promise<void>;
   confirm: (opts: ConfirmOptions) => Promise<boolean>;
+  /** Resolves with the entered string on OK, or ``null`` on cancel/Esc. */
+  prompt: (opts: PromptOptions) => Promise<string | null>;
 }
 
 let _dialogApi: DialogApi | null = null;
@@ -75,6 +86,17 @@ export const dialog: DialogApi = {
     }
     return _dialogApi.confirm(opts);
   },
+  prompt: (opts) => {
+    if (!_dialogApi) {
+      // eslint-disable-next-line no-alert
+      const v = window.prompt(
+        typeof opts.message === "string" ? opts.message : opts.title ?? "",
+        opts.initialValue ?? "",
+      );
+      return Promise.resolve(v);
+    }
+    return _dialogApi.prompt(opts);
+  },
 };
 
 const DialogContext = createContext<DialogApi | null>(null);
@@ -85,18 +107,33 @@ export function useDialog(): DialogApi {
   return dialog;
 }
 
-interface QueueEntry {
+type AlertEntry = {
   id: number;
-  kind: "alert" | "confirm";
+  kind: "alert";
+  opts: AlertOptions;
+  resolve: () => void;
+};
+type ConfirmEntry = {
+  id: number;
+  kind: "confirm";
   opts: ConfirmOptions;
   resolve: (value: boolean) => void;
-}
+};
+type PromptEntry = {
+  id: number;
+  kind: "prompt";
+  opts: PromptOptions;
+  resolve: (value: string | null) => void;
+};
+type QueueEntry = AlertEntry | ConfirmEntry | PromptEntry;
 
 let _entryCounter = 0;
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<QueueEntry[]>([]);
+  const [promptValue, setPromptValue] = useState<string>("");
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const api = useMemo<DialogApi>(
     () => ({
@@ -112,6 +149,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
           setQueue((q) => [
             ...q,
             { id: ++_entryCounter, kind: "confirm", opts, resolve },
+          ]);
+        }),
+      prompt: (opts) =>
+        new Promise<string | null>((resolve) => {
+          setQueue((q) => [
+            ...q,
+            { id: ++_entryCounter, kind: "prompt", opts, resolve },
           ]);
         }),
     }),
@@ -132,16 +176,27 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     if (!el) return;
     if (current && !el.open) el.showModal();
     if (!current && el.open) el.close();
+    if (current?.kind === "prompt") {
+      setPromptValue(current.opts.initialValue ?? "");
+      // Autofocus the input after the native <dialog> is shown.
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
   }, [current]);
 
   const dismiss = useCallback(
-    (value: boolean) => {
+    (confirmed: boolean) => {
       const entry = queue[0];
       if (!entry) return;
-      entry.resolve(entry.kind === "alert" ? true : value);
+      if (entry.kind === "alert") {
+        entry.resolve();
+      } else if (entry.kind === "confirm") {
+        entry.resolve(confirmed);
+      } else {
+        entry.resolve(confirmed ? promptValue : null);
+      }
       setQueue((q) => q.slice(1));
     },
-    [queue],
+    [queue, promptValue],
   );
 
   useEffect(() => {
@@ -168,7 +223,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       {children}
       <dialog ref={dialogRef} className={`${styles.dialog} ${variantClass}`}>
         {current && (
-          <form method="dialog" onSubmit={(e) => e.preventDefault()}>
+          <form
+            method="dialog"
+            onSubmit={(e) => {
+              e.preventDefault();
+              dismiss(true);
+            }}
+          >
             {current.opts.title && (
               <h2 className={styles.title}>{current.opts.title}</h2>
             )}
@@ -178,9 +239,19 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               ) : (
                 current.opts.message
               )}
+              {current.kind === "prompt" && (
+                <input
+                  ref={inputRef}
+                  className={styles.input}
+                  type={current.opts.inputType ?? "text"}
+                  placeholder={current.opts.placeholder}
+                  value={promptValue}
+                  onChange={(e) => setPromptValue(e.target.value)}
+                />
+              )}
             </div>
             <div className={styles.actions}>
-              {current.kind === "confirm" && (
+              {(current.kind === "confirm" || current.kind === "prompt") && (
                 <button
                   type="button"
                   className={styles.btnGhost}
@@ -190,8 +261,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 </button>
               )}
               <button
-                type="button"
-                autoFocus
+                type="submit"
+                autoFocus={current.kind !== "prompt"}
                 className={
                   variant === "danger"
                     ? styles.btnDanger
@@ -201,7 +272,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 }
                 onClick={() => dismiss(true)}
               >
-                {current.opts.okLabel ?? (current.kind === "confirm" ? "OK" : "Got it")}
+                {current.opts.okLabel ?? (current.kind === "alert" ? "Got it" : "OK")}
               </button>
             </div>
           </form>

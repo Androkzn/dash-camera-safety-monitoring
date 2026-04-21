@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 
 import type { LiveSourceStatus } from "../../../shared/types/common";
+import { humanize } from "../../../shared/lib/format";
 
 import styles from "./SelectedStreamHeader.module.css";
 
@@ -68,8 +69,9 @@ export function SelectedStreamHeader({
   }
 
   const uptime = source.running && startedAt ? now - startedAt : source.uptime_sec;
-  const perception = source.perception_state ?? "—";
-  const perceptionWarn = perception !== "nominal" && perception !== "—";
+  const perceptionRaw = source.perception_state ?? "—";
+  const perceptionWarn = perceptionRaw !== "nominal" && perceptionRaw !== "—";
+  const perception = perceptionRaw === "—" ? "—" : humanize(perceptionRaw);
 
   return (
     <div className={styles.bar}>

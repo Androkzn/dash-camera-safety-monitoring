@@ -1,4 +1,4 @@
-.PHONY: install dev test lint run docker-build docker-up docker-down clean
+.PHONY: install dev test lint run start stop docker-build docker-up docker-down clean
 
 install:
 	pip install -e .
@@ -19,6 +19,22 @@ run:
 
 run-cloud:
 	python start.py --cloud
+
+start:
+	python start.py --skip-tests --no-browser
+
+stop:
+	@pids=$$(lsof -ti tcp:3000 tcp:8001 2>/dev/null | sort -u); \
+	if [ -n "$$pids" ]; then \
+		echo "stopping PIDs: $$pids"; \
+		kill $$pids 2>/dev/null; \
+		sleep 1; \
+		pids=$$(lsof -ti tcp:3000 tcp:8001 2>/dev/null | sort -u); \
+		[ -n "$$pids" ] && kill -9 $$pids 2>/dev/null; \
+		echo "stopped"; \
+	else \
+		echo "no server running on :3000 or :8001"; \
+	fi
 
 docker-build:
 	docker compose build

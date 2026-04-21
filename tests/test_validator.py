@@ -96,6 +96,14 @@ class TestFalseNegative:
         assert disc is not None
         assert disc.kind == "false_negative"
         assert disc.fingerprint == "validator/false-negative"
+        # The false-negative rule must also populate ``pair`` + metadata
+        # fields so the worker can persist a shadow record. Without these
+        # the UI loses the frame + per-gate diagnostic pipeline.
+        assert disc.pair is not None
+        assert len(disc.pair) == 2
+        assert disc.secondary_risk in {"high", "medium"}
+        assert disc.event_type == "pedestrian_proximity"
+        assert disc.distance_px >= 0.0
 
     def test_primary_recently_emitted_suppresses(self):
         secondary_a = Detection(cls="person", conf=0.8, x1=100, y1=400, x2=120, y2=500)

@@ -10,7 +10,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useEventStream } from "../../shared/hooks/useEventStream";
 import { useLiveStatus } from "../../shared/hooks/useLiveStatus";
-import { adminFetch } from "../../shared/lib/adminApi";
+import {
+  adminFetch,
+  isAdminAuthFailure,
+  MissingAdminTokenError,
+  setAdminToken,
+} from "../../shared/lib/adminApi";
 import { humanEventType } from "../../shared/lib/format";
 import { TopBar } from "../../shared/layout/TopBar";
 import { useDialog } from "../../shared/ui";
@@ -60,13 +65,50 @@ export function DashboardPage() {
       variant: "danger",
     });
     if (!ok) return;
-    setClearingEvents(true);
-    try {
+
+    // Run the admin-tier clear, with one inline token-prompt retry if the
+    // first attempt fails with a missing/invalid admin token.
+    const runClear = async (): Promise<void> => {
       await adminFetch<{ cleared: number }>("/api/events", { method: "DELETE" });
       clearEvents();
       if (hasFindings) {
         await clearAllFindings();
       }
+    };
+
+    setClearingEvents(true);
+    try {
+      try {
+        await runClear();
+      } catch (exc) {
+        if (!(exc instanceof MissingAdminTokenError) && !isAdminAuthFailure(exc)) {
+          throw exc;
+        }
+        const title =
+          exc instanceof MissingAdminTokenError
+            ? "Enter admin token to clear events"
+            : "Admin token rejected — enter a new one";
+        const entered = await dialog.prompt({
+          title,
+          message:
+            "Paste your admin token below. It's stored in this session only " +
+            "(sessionStorage) and sent as Authorization: Bearer.",
+          placeholder: "admin token",
+          inputType: "password",
+          okLabel: "Save & clear",
+          cancelLabel: "Cancel",
+          variant: "warning",
+        });
+        if (!entered) return;
+        setAdminToken(entered);
+        await runClear();
+      }
+    } catch (exc) {
+      await dialog.alert({
+        title: "Clear all events failed",
+        message: (exc as Error)?.message ?? "unknown error",
+        variant: "danger",
+      });
     } finally {
       setClearingEvents(false);
     }

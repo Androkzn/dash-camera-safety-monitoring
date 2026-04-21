@@ -247,12 +247,26 @@ def _best_iou_match(
     return best, best_iou
 
 
+def _humanize(value: str) -> str:
+    """snake_case → "Snake case". Used only for operator-facing prose in
+    ``Discrepancy.detail``; evidence fields keep their raw machine values.
+    """
+    if not value:
+        return "?"
+    return value.replace("_", " ")
+
+
 @dataclass
 class Discrepancy:
     """One comparator output.
 
     Translated directly into a ``WatchdogFinding`` by the worker before
     ``_write_finding()`` is called.
+
+    ``pair`` / ``secondary_risk`` / ``distance_m`` / ``distance_px``
+    are populated only for ``kind="false_negative"`` so the worker can
+    persist the shadow record (frame + detections) that backs the
+    finding. They are ignored by the other two rule outputs.
     """
 
     kind: str  # "false_positive" | "false_negative" | "classification_mismatch"
@@ -261,6 +275,11 @@ class Discrepancy:
     detail: str
     fingerprint: str
     evidence: list[dict[str, str]] = field(default_factory=list)
+    pair: Optional[tuple["Detection", "Detection"]] = None
+    secondary_risk: str = ""
+    distance_m: Optional[float] = None
+    distance_px: float = 0.0
+    event_type: str = ""
 
 
 class DiscrepancyComparator:
@@ -301,7 +320,7 @@ class DiscrepancyComparator:
             severity="warning",
             title="Secondary model cannot corroborate primary event",
             detail=(
-                f"Primary emitted {primary_event.get('event_type','?')} at "
+                f"Primary emitted {_humanize(primary_event.get('event_type','?'))} at "
                 f"{primary_event.get('risk_level','?')} risk, but the secondary "
                 f"detector found no matching object pair "
                 f"(best IoU: {iou_a:.2f}, {iou_b:.2f}; need ≥ {self.iou_threshold:.2f})."
@@ -370,7 +389,7 @@ class DiscrepancyComparator:
                 severity="warning",
                 title="Secondary model found event primary did not emit",
                 detail=(
-                    f"Secondary detector flagged a {event_type} at {risk} risk "
+                    f"Secondary detector flagged a {_humanize(event_type)} at {risk} risk "
                     f"on a frame where the primary produced no matching event."
                 ),
                 fingerprint="validator/false-negative",
@@ -382,6 +401,11 @@ class DiscrepancyComparator:
                     {"label": "secondary_pair_classes", "value": f"{a.cls},{b.cls}"},
                     {"label": "secondary_pair_confs", "value": f"{a.conf:.2f},{b.conf:.2f}"},
                 ],
+                pair=(a, b),
+                secondary_risk=risk,
+                distance_m=dist_m,
+                distance_px=float(distance_px),
+                event_type=event_type,
             )
         return None
 
@@ -511,6 +535,7 @@ class ValidatorWorker:
         observer_record_skip: Optional[Callable[..., None]] = None,
         queue_max: int = VALIDATOR_QUEUE_MAX,
         sample_sec: float = VALIDATOR_SAMPLE_SEC,
+        save_shadow_record: Optional[Callable[..., Any]] = None,
     ) -> None:
         self.detector = detector
         self.comparator = comparator
@@ -519,6 +544,13 @@ class ValidatorWorker:
         self._write_finding = write_finding
         self._finding_ctor = finding_ctor
         self._observer_record_skip = observer_record_skip
+        # Shadow-store writer — captures the frame + detection snapshot
+        # backing every ``validator/false-negative`` finding so the UI
+        # can explain the miss and offer "promote to event" / "re-run
+        # primary" actions. Dependency-injected so tests can substitute
+        # a spy. The default import is deferred to the first _emit call
+        # so the store's cv2 dependency doesn't block worker construction.
+        self._save_shadow_record = save_shadow_record
         self.queue: asyncio.Queue[ValidatorJob] = asyncio.Queue(maxsize=queue_max)
         # Unbounded overflow for episode jobs — every primary event earns a
         # re-check, so we never drop them even when the bounded queue is full.
@@ -742,10 +774,22 @@ class ValidatorWorker:
                 findings.append(fn)
 
         for disc in findings:
-            self._emit(disc, job)
+            self._emit(disc, job, secondary)
 
-    def _emit(self, disc: Discrepancy, job: ValidatorJob) -> None:
-        """Turn a Discrepancy into a WatchdogFinding and persist it."""
+    def _emit(
+        self,
+        disc: Discrepancy,
+        job: ValidatorJob,
+        secondary_detections: list[Detection],
+    ) -> None:
+        """Turn a Discrepancy into a WatchdogFinding and persist it.
+
+        For false-negative findings we additionally snapshot the frame
+        + primary/secondary detections into the shadow store, keyed by
+        the finding's ``snapshot_id``. The stored record powers the UI
+        dialog (frame, per-gate diagnostic, re-run primary, promote).
+        Shadow-store failures are swallowed: the finding still emits.
+        """
         try:
             extra_evidence = list(disc.evidence) + [
                 {"label": "slot_id", "value": str(job.slot_id)},
@@ -761,6 +805,8 @@ class ValidatorWorker:
                 source="rule",
                 evidence=extra_evidence,
             )
+            if disc.kind == "false_negative" and disc.pair is not None:
+                self._persist_shadow_record(finding, disc, job, secondary_detections)
             self._write_finding(finding)
             self.findings_emitted += 1
             log.info(
@@ -772,6 +818,60 @@ class ValidatorWorker:
             )
         except Exception as exc:  # noqa: BLE001
             log.warning("validator: failed to emit finding: %s", exc)
+
+    def _persist_shadow_record(
+        self,
+        finding: Any,
+        disc: Discrepancy,
+        job: ValidatorJob,
+        secondary_detections: list[Detection],
+    ) -> None:
+        """Save the shadow-store record + mutate ``finding.evidence`` in place.
+
+        Keeps the shadow-store dependency optional: if the importer or
+        writer fails (no cv2, read-only FS, OS error), the finding still
+        goes out — just without the extra evidence chip that makes the
+        frame addressable from the UI.
+        """
+        saver = self._save_shadow_record
+        if saver is None:
+            try:
+                from road_safety.core import shadow_store
+                saver = shadow_store.save
+                self._save_shadow_record = saver
+            except Exception as exc:  # noqa: BLE001
+                log.warning("validator: shadow_store unavailable: %s", exc)
+                return
+        shadow_id = getattr(finding, "snapshot_id", None)
+        if not shadow_id:
+            return
+        try:
+            record = saver(
+                shadow_id=shadow_id,
+                slot_id=job.slot_id,
+                wall_ts=job.wall_ts,
+                event_type=disc.event_type or "unknown",
+                secondary_risk=disc.secondary_risk,
+                distance_m=disc.distance_m,
+                distance_px=disc.distance_px,
+                frame=job.frame,
+                secondary_pair=disc.pair,
+                secondary_detections=secondary_detections,
+                primary_detections=job.primary_detections,
+            )
+        except Exception as exc:  # noqa: BLE001 — never bubble to the loop
+            log.warning("validator: shadow_store.save failed: %s", exc)
+            return
+        if record is None:
+            return
+        # Attach the id so the frontend can address the stored record
+        # without scanning the full records file.
+        try:
+            finding.evidence.append({"label": "shadow_id", "value": shadow_id})
+        except AttributeError:
+            # The finding_ctor might return a non-dataclass mock; in that
+            # case the missing evidence attribute is acceptable.
+            pass
 
 
 def _frame_height(frame) -> int:

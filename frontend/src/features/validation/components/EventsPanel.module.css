@@ -252,6 +252,21 @@
     var(--panel);
   border: 1px solid var(--border);
   border-left: 4px solid var(--purple);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.shadowRowClickable {
+  cursor: pointer;
+}
+
+.shadowRowClickable:hover {
+  border-color: rgba(167, 139, 250, 0.35);
+  border-left-color: var(--purple);
+}
+
+.shadowRowClickable:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
 }
 
 .shadowTop {

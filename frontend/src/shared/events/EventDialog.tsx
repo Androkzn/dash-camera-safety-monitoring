@@ -6,8 +6,9 @@
  * is a live stream (no seekable backing file), the backend 404s and we
  * fall back to showing the event thumbnail.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
+import { humanize } from "../lib/format";
 import type { SafetyEvent } from "../types/common";
 
 import styles from "./EventDialog.module.css";
@@ -17,11 +18,19 @@ interface EventDialogProps {
   disputeLabel?: string;
   disputeBody?: string;
   onClose: () => void;
-}
-
-function humanize(value: string | undefined | null): string {
-  if (!value) return "—";
-  return value.replace(/_/g, " ");
+  /**
+   * Skip the ``/api/events/{id}/clip`` fetch and render the thumbnail
+   * fallback immediately. Shadow-only events (no seekable source) pass
+   * this so the dialog doesn't fire a guaranteed-404 network request.
+   */
+  disableClip?: boolean;
+  /**
+   * Optional extra content rendered into the info-side body after the
+   * built-in sections. Features compose shadow-specific panels here
+   * (miss-reason diagnostic, re-run / promote actions) without
+   * polluting the shared dialog with feature-level concerns.
+   */
+  children?: ReactNode;
 }
 
 function fmtNum(v: number | undefined | null, unit = "", digits = 2): string {
@@ -55,6 +64,8 @@ export function EventDialog({
   disputeLabel,
   disputeBody,
   onClose,
+  disableClip = false,
+  children,
 }: EventDialogProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [clipFailed, setClipFailed] = useState(false);
@@ -75,8 +86,10 @@ export function EventDialog({
 
   const clipUrl = useMemo(
     () =>
-      event ? `/api/events/${encodeURIComponent(event.event_id)}/clip?before=3&after=3` : null,
-    [event],
+      event && !disableClip
+        ? `/api/events/${encodeURIComponent(event.event_id)}/clip?before=3&after=3`
+        : null,
+    [event, disableClip],
   );
 
   if (!event) return null;
@@ -159,7 +172,7 @@ export function EventDialog({
                 <span className={styles.pill}>{humanize(event.scene_context.label)}</span>
               )}
               {event.perception_state && event.perception_state !== "nominal" && (
-                <span className={styles.pill}>{event.perception_state}</span>
+                <span className={styles.pill}>{humanize(event.perception_state)}</span>
               )}
             </div>
 
@@ -244,6 +257,8 @@ export function EventDialog({
                 Enrichment skipped: {humanize(event.enrichment_skipped)}
               </div>
             )}
+
+            {children}
           </div>
         </div>
       </div>

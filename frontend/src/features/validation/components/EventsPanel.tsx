@@ -18,6 +18,12 @@ import type {
   SafetyEvent,
   WatchdogFinding,
 } from "../../../shared/types/common";
+import {
+  getShadowId,
+  shadowFindingToEvent,
+} from "../lib/shadowEvent";
+
+import { ShadowDetailPanel } from "./ShadowDetailPanel";
 
 import styles from "./EventsPanel.module.css";
 
@@ -87,6 +93,7 @@ export function EventsPanel({
   const [openEvent, setOpenEvent] = useState<{
     ev: SafetyEvent;
     dispute?: DisputeInfo;
+    shadowId?: string;
   } | null>(null);
   const [showLow, setShowLow] = useState(false);
 
@@ -198,19 +205,47 @@ export function EventsPanel({
           </div>
         ) : (
           <div className={styles.list}>
-            {shadowOnly.map((f) => (
-              <div key={`${f.snapshot_id}_${f.ts}`} className={styles.shadowRow}>
-                <div className={styles.shadowTop}>
-                  <span className={styles.shadowTitle}>{f.title}</span>
-                  <span className={`${styles.badge} ${styles.badgeDisputed}`}>
-                    Shadow flag
-                  </span>
+            {shadowOnly.map((f) => {
+              // ``shadow_id`` comes from the finding's evidence — the
+              // validator stamps it on every false-negative so the
+              // dialog can fetch the full ShadowRecord + analysis.
+              // Findings emitted before the shadow-store wiring shipped
+              // won't carry one — we fall back to a non-clickable row
+              // so older rows still render without a broken dialog.
+              const shadowId = getShadowId(f);
+              const clickable = Boolean(shadowId);
+              const onOpen = () =>
+                setOpenEvent({
+                  ev: shadowFindingToEvent(f),
+                  shadowId,
+                });
+              return (
+                <div
+                  key={`${f.snapshot_id}_${f.ts}`}
+                  className={`${styles.shadowRow} ${clickable ? styles.shadowRowClickable ?? "" : ""}`}
+                  onClick={clickable ? onOpen : undefined}
+                  role={clickable ? "button" : undefined}
+                  tabIndex={clickable ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (!clickable) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onOpen();
+                    }
+                  }}
+                >
+                  <div className={styles.shadowTop}>
+                    <span className={styles.shadowTitle}>{f.title}</span>
+                    <span className={`${styles.badge} ${styles.badgeDisputed}`}>
+                      Shadow flag
+                    </span>
+                  </div>
+                  <div className={styles.shadowMeta}>
+                    {formatTime(f.ts)} · {f.detail}
+                  </div>
                 </div>
-                <div className={styles.shadowMeta}>
-                  {formatTime(f.ts)} · {f.detail}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -225,8 +260,16 @@ export function EventsPanel({
               : "Secondary detector disagreed with the primary on this frame."
             : undefined
         }
+        disableClip={Boolean(openEvent?.shadowId)}
         onClose={() => setOpenEvent(null)}
-      />
+      >
+        {openEvent?.shadowId ? (
+          <ShadowDetailPanel
+            shadowId={openEvent.shadowId}
+            onPromoted={() => setOpenEvent(null)}
+          />
+        ) : null}
+      </EventDialog>
     </div>
   );
 }
