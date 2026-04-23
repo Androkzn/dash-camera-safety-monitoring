@@ -157,7 +157,32 @@ STREAM_SOURCES = _parse_stream_sources()
 # of 2 fps is the tested sweet spot: fast enough to catch TTC windows
 # (time-to-collision) in city driving, slow enough to keep the CPU cool and
 # leave headroom for LLM enrichment. Increasing this blindly burns budget.
+#
+# When ``FPS_ADAPTIVE`` is on this becomes the *ceiling* — the StreamReader
+# captures at this rate and a secondary gate in the perception loop drops
+# frames adaptively based on ego-speed. When adaptive is off this is the
+# fixed process rate, as before.
 TARGET_FPS = float(os.getenv("ROAD_TARGET_FPS", "2.0"))
+
+# ``ROAD_FPS_ADAPTIVE`` — if true, the perception loop rate adapts to ego
+# speed derived from optical flow: parked/idle → floor, urban → mid,
+# highway → ceiling. Capture rate stays fixed at the ceiling; the gate
+# simply skips detection on frames we don't need. Default on — the
+# fixed-rate path is still fully supported for deployments that need
+# a deterministic CPU budget.
+FPS_ADAPTIVE = os.getenv("ROAD_FPS_ADAPTIVE", "true").strip().lower() in (
+    "1", "true", "yes", "on",
+)
+# ``ROAD_FPS_FLOOR`` — the lowest process rate the adaptive controller will
+# pick. Pinned above 2.67 fps so the multi-gate TTC window (≥4 samples in
+# ≥1.5s) stays viable even in the lowest regime. 3.0 is the safe default.
+FPS_FLOOR = float(os.getenv("ROAD_FPS_FLOOR", "3.0"))
+# ``ROAD_FPS_CEIL`` — the highest process rate the adaptive controller will
+# pick. Also the StreamReader capture rate when adaptive is on — raising
+# this means the capture thread reads more frames regardless of whether
+# the gate admits them. 6.0 fps doubles the TTC sample density at highway
+# speed without materially hurting CPU at idle (gate drops most frames).
+FPS_CEIL = float(os.getenv("ROAD_FPS_CEIL", "6.0"))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Section: EVENT BUFFER

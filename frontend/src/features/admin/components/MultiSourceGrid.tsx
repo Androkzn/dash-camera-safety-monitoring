@@ -37,6 +37,46 @@ function modeBadge(streamType: LiveSourceStatus["stream_type"]):
   }
 }
 
+// Map the controller snapshot to a tile-badge display. The tone class
+// lets an operator glance the grid and see which cameras are in which
+// policy band (or clamped by quality). When adaptive is off we still
+// render the rate (just at the ceiling) so the UI never goes blank.
+function fpsBadgeFor(
+  fps: LiveSourceStatus["fps_controller"],
+): { rate: number; label: string; toneClass: string; hint: string } {
+  const rate = fps.target_fps_active;
+  if (!fps.enabled) {
+    return {
+      rate,
+      label: "fixed",
+      toneClass: "",
+      hint: `Fixed FPS mode — enable adaptive in Settings to let rate follow ego-speed.`,
+    };
+  }
+  if (fps.quality_degraded) {
+    return {
+      rate,
+      label: "quality",
+      toneClass: "fpsBadgeDegraded",
+      hint: `Quality-degraded — clamped to floor (${fps.floor_fps.toFixed(1)} fps).`,
+    };
+  }
+  const speed =
+    fps.smoothed_speed_mps != null ? ` · ${fps.smoothed_speed_mps.toFixed(1)} m/s` : "";
+  const toneClass =
+    fps.band === "highway"
+      ? "fpsBadgeHighway"
+      : fps.band === "urban"
+        ? "fpsBadgeUrban"
+        : "fpsBadgeParked";
+  return {
+    rate,
+    label: fps.band,
+    toneClass,
+    hint: `Adaptive FPS — band: ${fps.band}${speed} · envelope ${fps.floor_fps.toFixed(1)}–${fps.ceil_fps.toFixed(1)} fps`,
+  };
+}
+
 function StreamTile({
   source,
   focused,
@@ -141,6 +181,20 @@ function StreamTile({
         {!detection && running && (
           <span className={styles.detectionBadge}>detection off</span>
         )}
+        {running && detection && (() => {
+          const b = fpsBadgeFor(source.fps_controller);
+          const toneClass = b.toneClass ? styles[b.toneClass] : "";
+          return (
+            <span
+              className={`${styles.fpsBadge} ${toneClass}`.trim()}
+              title={b.hint}
+              aria-label={`Current perception rate ${b.rate.toFixed(1)} fps — ${b.label}`}
+            >
+              <strong>{b.rate.toFixed(1)}</strong>
+              <span>fps · {b.label}</span>
+            </span>
+          );
+        })()}
         {focused && (
           <span className={styles.focusedBadge} aria-hidden="true">
             Tap to restore

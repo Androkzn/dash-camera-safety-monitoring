@@ -285,6 +285,54 @@
   font-weight: 600;
 }
 
+/* Per-tile current-FPS badge. Anchored top-right (opposite side from the
+ * mode / detection stack) so it doesn't fight for space with the existing
+ * badges. Visible regardless of adaptive mode — shows the current target
+ * rate either way so an operator can see what each camera is spending. */
+.fpsBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #e2e8f0;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.fpsBadge strong {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #f8fafc;
+}
+
+/* Adaptive-mode tint — a soft accent line under the rate so the operator
+ * can tell at a glance whether the number is static (TARGET_FPS) or
+ * policy-driven. Tone shifts by band to telegraph the policy state. */
+.fpsBadgeParked {
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+.fpsBadgeUrban {
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+.fpsBadgeHighway {
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+.fpsBadgeDegraded {
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+}
+
 /* Stream transport mode pill — anchored top-left, nudged down when a
  * detection-off badge also renders so the two don't overlap. */
 .modeBadge {

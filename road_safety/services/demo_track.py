@@ -69,6 +69,10 @@ class TrackPoint:
 # doesn't change at runtime and a ~200 KB XML re-parse on every
 # request is wasteful when the map polls every second or two.
 _CACHE: dict[str, Any] | None = None
+# Parallel cache of the raw TrackPoint list — kept alongside ``_CACHE`` so
+# perception-side consumers (the FPS controller) can look up speed without
+# paying for JSON round-trips.
+_POINTS_CACHE: list[TrackPoint] | None = None
 
 
 _EARTH_RADIUS_M = 6_371_000.0
@@ -295,6 +299,8 @@ def _build_cache() -> dict[str, Any]:
         total,
         bounds,
     )
+    global _POINTS_CACHE
+    _POINTS_CACHE = points
     return {
         "ok": True,
         "points": [
@@ -323,14 +329,56 @@ def load_track() -> dict[str, Any]:
     return _CACHE
 
 
+def speed_mps_at(t_sec: float) -> float | None:
+    """Return the GPS speed at ``t_sec`` into the loop, or None if unavailable.
+
+    ``t_sec`` is interpreted against the *looped* demo track — the same
+    clock the frontend map uses for its marker. Out-of-range values are
+    wrapped by ``% total_duration_sec`` so a caller can feed either a
+    playback head that already loops (StreamReader) or a wallclock-mod
+    value without branching.
+
+    Linear interpolation between adjacent ``TrackPoint``\\s. ``speed_mps``
+    is already trailing-window-smoothed inside ``_compute_speeds`` so
+    interpolation here cannot accidentally un-smooth a real signal.
+    """
+    if _CACHE is None:
+        # Trigger cache population on first call.
+        load_track()
+    if not _POINTS_CACHE:
+        return None
+    total = _POINTS_CACHE[-1].t_sec if _POINTS_CACHE else 0.0
+    if total <= 0.0:
+        return None
+    # Wrap into the loop domain. A caller feeding a playback head that
+    # already loops will still land in range here (modulo is a no-op).
+    t = t_sec % total
+    pts = _POINTS_CACHE
+    # Binary search for the segment containing ``t``. Linear scan would
+    # also work (tracks are ~hundreds of points) but bisect keeps this
+    # call cheap enough to use on the hot path.
+    import bisect
+    idx = bisect.bisect_left([p.t_sec for p in pts], t)
+    if idx <= 0:
+        return pts[0].speed_mps
+    if idx >= len(pts):
+        return pts[-1].speed_mps
+    prev, nxt = pts[idx - 1], pts[idx]
+    span = max(1e-6, nxt.t_sec - prev.t_sec)
+    alpha = (t - prev.t_sec) / span
+    return prev.speed_mps + alpha * (nxt.speed_mps - prev.speed_mps)
+
+
 def reset_cache_for_tests() -> None:
     """Drop the in-memory cache so a test can re-parse after monkeypatching.
 
+    Also clears the parallel raw-points cache used by ``speed_mps_at``.
     Exposed solely for tests; production code should never need to call
     this (the track file doesn't change at runtime).
     """
-    global _CACHE
+    global _CACHE, _POINTS_CACHE
     _CACHE = None
+    _POINTS_CACHE = None
 
 
 # ---------------------------------------------------------------------------

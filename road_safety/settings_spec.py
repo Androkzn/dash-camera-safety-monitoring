@@ -39,6 +39,9 @@ from typing import Any, Callable, Iterable
 
 from road_safety.config import (
     ALPR_MODE,
+    FPS_ADAPTIVE,
+    FPS_CEIL,
+    FPS_FLOOR,
     MAX_RECENT_EVENTS,
     PAIR_COOLDOWN_SEC,
     TARGET_FPS,
@@ -296,10 +299,40 @@ SETTINGS_SPEC: list[SettingSpec] = [
         type="float",
         category="performance",
         mutability="warm_reload",
-        description="Perception loop tick rate. Live streams restart to pick up the new rate.",
+        description="Perception loop tick rate. Live streams restart to pick up the new rate. Ignored when FPS_ADAPTIVE is on.",
         min_value=0.5,
         max_value=24.0,
         step=0.5,            # half-fps snaps; finer granularity isn't useful
+    ),
+    SettingSpec(
+        key="FPS_ADAPTIVE",
+        default=bool(FPS_ADAPTIVE),
+        type="bool",
+        category="performance",
+        mutability="warm_reload",
+        description="Adapt perception FPS to ego-speed derived from optical flow. Toggling restarts active streams to switch capture rate.",
+    ),
+    SettingSpec(
+        key="FPS_FLOOR",
+        default=float(FPS_FLOOR),
+        type="float",
+        category="performance",
+        mutability="hot_apply",
+        description="Minimum process rate when FPS_ADAPTIVE is on. Must stay >= 2.7 fps so the TTC sampling window remains satisfiable.",
+        min_value=2.7,
+        max_value=12.0,
+        step=0.1,
+    ),
+    SettingSpec(
+        key="FPS_CEIL",
+        default=float(FPS_CEIL),
+        type="float",
+        category="performance",
+        mutability="warm_reload",
+        description="Maximum process rate when FPS_ADAPTIVE is on. Also the stream capture rate in adaptive mode — raising it means reading more frames regardless of policy.",
+        min_value=3.0,
+        max_value=24.0,
+        step=0.5,
     ),
     # --- validator (dual-model shadow detector) ----------------------------
     SettingSpec(
@@ -446,6 +479,13 @@ def _cross_field_errors(merged: dict[str, Any]) -> list[ValidationError]:
             errs.append({
                 "key": "SLACK_HIGH_MIN_CONFIDENCE",
                 "reason": "must be >= CONF_THRESHOLD (otherwise the floor is moot)",
+            })
+        # FPS envelope: ceiling must be >= floor. Without this the
+        # controller cannot construct a valid policy table.
+        if merged["FPS_CEIL"] < merged["FPS_FLOOR"]:
+            errs.append({
+                "key": "FPS_CEIL",
+                "reason": "must be >= FPS_FLOOR",
             })
     except KeyError as exc:
         errs.append({"key": str(exc).strip("'"), "reason": "missing for cross-field check"})

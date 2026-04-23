@@ -72,6 +72,20 @@ export function SelectedStreamHeader({
   const perceptionRaw = source.perception_state ?? "—";
   const perceptionWarn = perceptionRaw !== "nominal" && perceptionRaw !== "—";
   const perception = perceptionRaw === "—" ? "—" : humanize(perceptionRaw);
+  // Adaptive-FPS summary: show the current target rate plus a hint about
+  // *why* it's at that number (band, quality clamp, or fixed mode).
+  const fps = source.fps_controller;
+  const fpsValue = `${fps.target_fps_active.toFixed(1)} fps`;
+  const fpsHint = !fps.enabled
+    ? "Fixed mode — enable adaptive FPS in Settings for speed-based rate"
+    : fps.quality_degraded
+      ? `Quality-degraded — clamped to floor ${fps.floor_fps.toFixed(1)} fps`
+      : `Adaptive · band: ${fps.band}${
+          fps.smoothed_speed_mps != null
+            ? ` · ${fps.smoothed_speed_mps.toFixed(1)} m/s`
+            : ""
+        } · envelope ${fps.floor_fps.toFixed(1)}–${fps.ceil_fps.toFixed(1)} fps`;
+  const fpsWarn = fps.enabled && fps.quality_degraded;
 
   return (
     <div className={styles.bar}>
@@ -107,6 +121,12 @@ export function SelectedStreamHeader({
           label="frames"
           value={`${source.frames_processed.toLocaleString()} / ${source.frames_read.toLocaleString()}`}
           hint="processed / read"
+        />
+        <Stat
+          label="fps"
+          value={fpsValue}
+          warn={fpsWarn}
+          hint={fpsHint}
         />
         <Stat label="active" value={String(source.active_episodes)} hint="open episodes" />
         <Stat

@@ -141,6 +141,9 @@ from road_safety.config import (
     WATCHDOG_INTERVAL_SEC,
     STATIC_DIR,
     TARGET_FPS,
+    FPS_ADAPTIVE,
+    FPS_FLOOR,
+    FPS_CEIL,
     THUMB_SIGNING_SECRET,
     THUMBS_DIR,
     VEHICLE_ID,
@@ -178,6 +181,7 @@ from road_safety.core import shadow_analysis, shadow_store
 from road_safety.core.quality import QualityMonitor
 from road_safety.core.context import SceneContextClassifier
 from road_safety.core.egomotion import EgoMotionEstimator
+from road_safety.core.adaptive_fps import FpsController
 from road_safety.core.orientation_policy import classify_event as _orientation_classify
 from road_safety.services.llm import chat as llm_chat, enrich_event, llm_configured, narrate_event
 from road_safety.services.llm_obs import observer as llm_observer
@@ -516,6 +520,18 @@ class StreamSlot:
         self.scene = SceneContextClassifier()
         self.last_ego_flow = None
         self.last_scene_ctx = None
+        # Adaptive FPS controller — one per slot. Sizes its envelope from
+        # the current SETTINGS_STORE snapshot so a slot started after a
+        # warm-reload picks up the operator's latest values. When
+        # ``FPS_ADAPTIVE`` is off it behaves as a pass-through (always
+        # admits frames) so legacy fixed-rate behaviour is preserved.
+        _settings = SETTINGS_STORE.snapshot()
+        self.fps_controller = FpsController(
+            floor_fps=float(_settings.get("FPS_FLOOR", FPS_FLOOR)),
+            ceil_fps=float(_settings.get("FPS_CEIL", FPS_CEIL)),
+            static_fps=float(_settings.get("TARGET_FPS", TARGET_FPS)),
+            enabled=bool(_settings.get("FPS_ADAPTIVE", FPS_ADAPTIVE)),
+        )
         # Per-source MJPEG buffer. The capture thread writes; HTTP handlers
         # read. A dedicated lock per slot avoids cross-source contention.
         self._frame_lock = threading.Lock()
@@ -611,6 +627,7 @@ class StreamSlot:
             "active_episodes": len(self.episodes),
             "perception_state": q.get("state"),
             "perception_reason": q.get("reason"),
+            "fps_controller": self.fps_controller.snapshot(),
         }
 
 
@@ -1297,25 +1314,48 @@ def _start_slot(slot: StreamSlot) -> None:
     if not slot.original_source:
         raise RuntimeError(f"slot {slot.source_id} has no source URL")
     hls = slot.original_source
-    live_fps = float(SETTINGS_STORE.snapshot().get("TARGET_FPS", TARGET_FPS))
+    settings = SETTINGS_STORE.snapshot()
+    adaptive = bool(settings.get("FPS_ADAPTIVE", FPS_ADAPTIVE))
+    # When adaptive is on, the StreamReader captures at the ceiling and the
+    # in-pipeline gate drops frames dynamically — the capture thread itself
+    # never needs to be restarted on policy changes. When adaptive is off,
+    # the legacy behaviour applies: capture rate == process rate ==
+    # TARGET_FPS, and a TARGET_FPS change restarts the slot.
+    if adaptive:
+        capture_fps = float(settings.get("FPS_CEIL", FPS_CEIL))
+    else:
+        capture_fps = float(settings.get("TARGET_FPS", TARGET_FPS))
     # Local-file sources loop forever by default so the demo "fake dashcam"
     # MP4 replays end-to-end. Live URLs (HLS/RTSP) keep the legacy
     # "exit on EOF" behaviour — there is no EOF on a live feed anyway.
     should_loop = slot.stream_type == "dashcam_file"
     reader = StreamReader(
         hls,
-        target_fps=live_fps,
+        target_fps=capture_fps,
         original_source=slot.original_source,
         loop=should_loop,
     )
+    # Reconcile the controller's envelope with the current store in case
+    # the operator tuned it while this slot was stopped. Keeping this in
+    # one place (rather than spraying set_envelope() calls at every knob
+    # change) makes the warm-reload path easy to reason about.
+    slot.fps_controller.set_envelope(
+        floor_fps=float(settings.get("FPS_FLOOR", FPS_FLOOR)),
+        ceil_fps=float(settings.get("FPS_CEIL", FPS_CEIL)),
+    )
+    slot.fps_controller.set_static_fps(
+        float(settings.get("TARGET_FPS", TARGET_FPS))
+    )
+    slot.fps_controller.set_enabled(adaptive)
     reader.start(_make_on_frame(slot))
     slot.reader = reader
     slot.last_error = None
     log.info(
-        "slot %s started (source=%s, target_fps=%.1f)",
+        "slot %s started (source=%s, capture_fps=%.1f, adaptive=%s)",
         slot.source_id,
         slot.original_source[:80],
-        live_fps,
+        capture_fps,
+        adaptive,
     )
 
 
@@ -1462,6 +1502,66 @@ def _on_frame(slot: StreamSlot, wall_ts: float, frame) -> None:
         except Exception as exc:
             log.warning("raw frame encode failed (%s): %s", slot.source_id, exc)
         return
+
+    # ----- Adaptive FPS pre-gate -----
+    # Feed the controller the previous frame's ego-flow + the current
+    # quality state, then ask whether this frame should run the heavy
+    # perception stack. When it skips we still tick ego-motion and the
+    # quality observer with empty detections — they're both cheap
+    # (~1-3ms) and the controller needs their signals to decide the
+    # *next* frame correctly. Without this the speed EMA would starve
+    # below the enter threshold and we'd never climb out of the floor.
+    if slot.fps_controller.enabled:
+        # GPS hybrid: for demo dashcam files, sync the controller to the
+        # demo track's per-point speed at the current playback head. The
+        # ego proxy is coarse and pinned to 0 for side-mounted cameras;
+        # GPS is the calibrated reading and wins when fresh.
+        # Non-demo sources skip this — real fleets can call
+        # ``set_gps_speed`` from wherever telematics lands.
+        if slot.stream_type == "dashcam_file" and slot.reader is not None:
+            try:
+                pos_sec, _ = slot.reader.playback_position()
+                gps_mps = demo_track_service.speed_mps_at(pos_sec)
+                if gps_mps is not None:
+                    slot.fps_controller.set_gps_speed(gps_mps, now_ts=wall_ts)
+            except Exception as exc:
+                log.debug(
+                    "demo gps lookup failed (%s): %s", slot.source_id, exc
+                )
+        slot.fps_controller.update(
+            slot.last_ego_flow,
+            slot.quality.state(),
+            now_ts=wall_ts,
+        )
+        if not slot.fps_controller.should_process(wall_ts):
+            try:
+                # Keep ego-speed + quality alive at capture rate so the
+                # next gate decision has fresh data. Empty detections
+                # mean ego-motion won't mask foreground, which at low
+                # ego-speed introduces a small bias the EMA can absorb;
+                # quality's per-pixel stats don't need detections at all.
+                slot.ego.update(frame, [], wall_ts)
+            except Exception as exc:
+                log.debug("adaptive-skip ego update failed (%s): %s", slot.source_id, exc)
+            try:
+                slot.quality.observe_frame(frame, [], wall_ts)
+            except Exception as exc:
+                log.debug("adaptive-skip quality update failed (%s): %s", slot.source_id, exc)
+            if slot.has_viewers():
+                try:
+                    ok, jpeg = cv2.imencode(
+                        ".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70]
+                    )
+                    if ok:
+                        with slot._frame_lock:
+                            slot._annotated_jpeg = jpeg.tobytes()
+                            slot._frame_ts = wall_ts
+                except Exception as exc:
+                    log.debug(
+                        "adaptive-skip encode failed (%s): %s",
+                        slot.source_id, exc,
+                    )
+            return
 
     # ----- Gate 1: tracked detection (YOLO + ByteTrack) -----
     detections = detect_frame(state.model, frame)
@@ -2228,14 +2328,35 @@ async def lifespan(app: FastAPI):
     else:
         log.warning("no live streams started (no sources or all failed)")
 
-    # Settings Console: warm-reload for TARGET_FPS. The StreamReader captures
-    # the fps value at construction time (and bakes it into an ffmpeg command),
-    # so a live change only takes effect after the reader
-    # is recycled. We restart each active slot on a background thread so the
+    # Settings Console: warm-reload for TARGET_FPS. The StreamReader bakes
+    # its target_fps into ``step = native_fps / target_fps`` at construction
+    # time, so a live rate change only takes effect after the reader is
+    # recycled. We restart each active slot on a background thread so the
     # settings-apply HTTP response is not delayed by the stop/join.
+    #
+    # When FPS_ADAPTIVE is on the StreamReader already captures at
+    # FPS_CEIL, so a TARGET_FPS change does not require a restart —
+    # TARGET_FPS is ignored by the adaptive path. The envelope
+    # (FPS_FLOOR / FPS_CEIL) is applied to the live controller in-place.
     def _on_target_fps_change(before, after) -> None:
-        old = float(before.get("TARGET_FPS") or 0.0)
         new = float(after.get("TARGET_FPS") or 0.0)
+        # Keep every controller's static_fps honest so the UI keeps
+        # reporting the real fixed-mode rate after a warm reload.
+        for slot in list(state.slots.values()):
+            try:
+                slot.fps_controller.set_static_fps(new)
+            except Exception as exc:
+                log.warning(
+                    "slot %s fps static update failed: %s",
+                    slot.source_id, exc,
+                )
+        adaptive = bool(after.get("FPS_ADAPTIVE", FPS_ADAPTIVE))
+        if adaptive:
+            # Adaptive path ignores TARGET_FPS for the capture rate —
+            # no stream restart needed. Controllers were already updated
+            # above so snapshots stay truthful.
+            return
+        old = float(before.get("TARGET_FPS") or 0.0)
         if old == new:
             return
         log.info("TARGET_FPS change %.1f -> %.1f — restarting active slots", old, new)
@@ -2258,6 +2379,66 @@ async def lifespan(app: FastAPI):
 
     SETTINGS_STORE.register_subscriber_for(
         ["TARGET_FPS"], _on_target_fps_change, name="restart_slots_for_fps"
+    )
+
+    # Adaptive-FPS warm reload. Envelope changes (floor/ceil) apply to
+    # every slot's live controller — no capture restart. The enabled
+    # flag is handled here too: turning adaptive ON is live; turning it
+    # OFF restarts capture at the fixed TARGET_FPS so the reader's
+    # subsample step matches the pipeline's expectation again.
+    def _on_fps_policy_change(before, after) -> None:
+        was_adaptive = bool(before.get("FPS_ADAPTIVE", FPS_ADAPTIVE))
+        now_adaptive = bool(after.get("FPS_ADAPTIVE", FPS_ADAPTIVE))
+        new_floor = float(after.get("FPS_FLOOR", FPS_FLOOR))
+        new_ceil = float(after.get("FPS_CEIL", FPS_CEIL))
+        # Capture rate is baked into the reader, so transitions across
+        # the adaptive on/off boundary need a restart. Envelope-only
+        # changes while adaptive stays on are live.
+        capture_rate_changed = was_adaptive != now_adaptive
+        if not capture_rate_changed:
+            for slot in list(state.slots.values()):
+                try:
+                    slot.fps_controller.set_envelope(
+                        floor_fps=new_floor, ceil_fps=new_ceil
+                    )
+                    slot.fps_controller.set_enabled(now_adaptive)
+                except Exception as exc:
+                    log.warning(
+                        "slot %s fps controller update failed: %s",
+                        slot.source_id, exc,
+                    )
+            log.info(
+                "fps policy updated in place (adaptive=%s floor=%.1f ceil=%.1f)",
+                now_adaptive, new_floor, new_ceil,
+            )
+            return
+
+        log.info(
+            "fps adaptive toggle %s -> %s — restarting active slots",
+            was_adaptive, now_adaptive,
+        )
+
+        def _restart_slots() -> None:
+            for slot in list(state.slots.values()):
+                if slot.reader is None:
+                    continue
+                try:
+                    _stop_slot(slot)
+                    _start_slot(slot)
+                except Exception as exc:
+                    log.warning(
+                        "slot %s restart for fps toggle failed: %s",
+                        slot.source_id, exc,
+                    )
+
+        threading.Thread(
+            target=_restart_slots, daemon=True, name="fps_policy_reload"
+        ).start()
+
+    SETTINGS_STORE.register_subscriber_for(
+        ["FPS_ADAPTIVE", "FPS_FLOOR", "FPS_CEIL"],
+        _on_fps_policy_change,
+        name="fps_policy_change",
     )
 
     # Ops sampler: one periodic thread that records fps / CPU / LLM

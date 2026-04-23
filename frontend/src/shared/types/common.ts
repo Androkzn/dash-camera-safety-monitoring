@@ -111,6 +111,30 @@ export type StreamType =
   | "webcam"
   | "unknown";
 
+/**
+ * Adaptive FPS controller snapshot — one per slot.
+ *
+ * ``enabled`` reflects whether the operator turned adaptive mode on; when
+ * ``false`` the other fields still describe the controller's frozen state
+ * at ceiling. The UI should treat ``enabled: false`` as a hint to show
+ * the static rate (TARGET_FPS) rather than this snapshot.
+ */
+export interface FpsControllerSnapshot {
+  enabled: boolean;
+  /** Process rate the controller is currently requesting, in fps. */
+  target_fps_active: number;
+  /** Which policy band is currently selected. */
+  band: "parked" | "urban" | "highway";
+  /** EMA-smoothed ego-speed in m/s; null while signal is unreliable. */
+  smoothed_speed_mps: number | null;
+  /** True when QualityMonitor is non-nominal — clamps rate to floor. */
+  quality_degraded: boolean;
+  floor_fps: number;
+  ceil_fps: number;
+  /** Most recent GPS reading in m/s (optional hybrid input). */
+  gps_mps: number | null;
+}
+
 export interface LiveSourceStatus {
   id: string;
   name: string;
@@ -131,6 +155,7 @@ export interface LiveSourceStatus {
   active_episodes: number;
   perception_state: string | null;
   perception_reason: string | null;
+  fps_controller: FpsControllerSnapshot;
 }
 
 export interface LiveSourcesResponse {
