@@ -30,6 +30,7 @@ A three-camera Nissan Rogue setup (front, rear, left) running on recorded dashca
 - **Edge-first architecture** — all perception runs on-device. Only typed JSON events (~2 KB) and redacted thumbnails (~8 KB) cross the wire. A 1,000-vehicle fleet would push ~30 MB/day per vehicle instead of ~28 GB.
 - **Privacy by default** — dual thumbnails (internal unredacted + public blurred), structural plate hashing **at the LLM ingest boundary** (not egress), DSAR-gated access, optional signed public-thumbnail tokens, and automated retention sweeps.
 - **Resilient LLM layer** — Anthropic ↔ Azure failover, token-bucket rate budget, circuit breaker (3 failures → 60 s open), self-consistency ALPR, per-call cost/latency observability. Detection runs with zero LLM calls — LLM is enrichment, not critical path.
+- **Adaptive per-camera FPS** — each slot's perception loop dynamically scales between `ROAD_FPS_FLOOR` (parked / degraded quality) and `ROAD_FPS_CEIL` (highway) based on ego-speed from optical flow, with hysteresis + per-band dwell so stop-and-go traffic doesn't cause the rate to flap. Capture stays at the ceiling; a cheap pre-detection gate drops frames we don't need. Fixed-rate mode (`ROAD_FPS_ADAPTIVE=false`) is still fully supported.
 - **Settings console with warm reload** — `TARGET_FPS` and other knobs reload without bouncing the server; each apply produces a before/after FPS + CPU diff and is rollback-able.
 - **Shadow-mode validator** — heavy precision/recall validator runs in shadow, surfaces drift to Admin / Dashboard / Settings / a dedicated Validation page, never blocks the hot path.
 - **Video ↔ GPS playback sync** — running dashcam file becomes the map clock source; the VehicleMap replays the real GPX track alongside the video.
@@ -78,6 +79,7 @@ A single dashcam at 1080p / 30 fps already pins a laptop CPU. A modern fleet veh
 | **Per-slot calibration** | `ROAD_CAMERA_{FOCAL_PX,HEIGHT_M,HORIZON_FRAC,ORIENTATION,BUMPER_OFFSET_M}__<SLOT>` overrides per camera. Side cams skip the ground-plane prior and report lateral range; rear cams flip orientation; ultra-wide lenses get their own focal length. |
 | **YOLO auto-accelerator** | `load_model()` picks CUDA → MPS → CPU automatically. The same code runs on a Jetson, a Mac mini, and a Linux laptop. |
 | **Encode-only-when-watched** | Each slot counts active MJPEG subscribers + recent polls. Idle tiles stop burning JPEG encode cycles; CPU scales with **viewers**, not with installed cameras. |
+| **Adaptive detection rate** | Per-slot controller picks a process rate between `ROAD_FPS_FLOOR` (3 fps — parked / bad quality) and `ROAD_FPS_CEIL` (6 fps — highway) from ego-speed, with EMA smoothing, per-band dwell, and exit/enter hysteresis. CPU scales with **motion**, not installed cameras; TTC sample density doubles at highway speed while parked tiles cost ~half as much. |
 | **Transport split by protocol** | HTTPS tiles use MJPEG (one push connection per tile); HTTP tiles poll `/admin/frame/{id}` at ~400 ms. Works around the browser's 6-concurrent-connections-per-host cap in local dev, where MJPEG+SSE would deadlock past ~4 tiles. |
 | **Auto-shedding + MJPEG decoder cap** | Backend shed policy plus frontend decoder cap keep the browser from melting at ≥6 tiles. |
 | **Shadow validator, not inline** | Heavy precision checks run in a shadow worker. Drift surfaces in the UI; the hot path is untouched. |
@@ -273,7 +275,7 @@ All runtime settings are environment-driven via `.env`. Key groups:
 | **Vehicle identity** | `ROAD_VEHICLE_ID`, `ROAD_ID`, `ROAD_DRIVER_ID`, `ROAD_LOCATION` | Required for fleet-scale deployments; every event is attributed to a specific vehicle + driver. |
 | **Privacy + access** | `ROAD_DSAR_TOKEN`, `ROAD_ADMIN_TOKEN`, `ROAD_PLATE_SALT`, `ROAD_PUBLIC_THUMBS_REQUIRE_TOKEN`, `ROAD_THUMB_SIGNING_SECRET` | DSAR token gates unredacted-thumbnail access. Optional signed-token mode can gate `_public` thumbnails too. Salt / signing secrets should be per deployment. |
 | **LLM** | `ANTHROPIC_API_KEY`, optional `AZURE_OPENAI_*`, `ROAD_ALPR_MODE` | Fully optional. System runs end-to-end with zero LLM calls — narration, ALPR, and agents degrade silently. External ALPR is off by default. |
-| **Runtime tuning** | `ROAD_TARGET_FPS`, `ROAD_SCORE_DECAY_INTERVAL_SEC` | `TARGET_FPS` warm-reloads via the Settings console (no restart). Score decay loop off with `0`. |
+| **Runtime tuning** | `ROAD_TARGET_FPS`, `ROAD_FPS_ADAPTIVE`, `ROAD_FPS_FLOOR`, `ROAD_FPS_CEIL`, `ROAD_SCORE_DECAY_INTERVAL_SEC` | `TARGET_FPS` warm-reloads via the Settings console (no restart). Adaptive FPS is on by default; set `ROAD_FPS_ADAPTIVE=false` to pin the loop at `TARGET_FPS`. Floor is pinned ≥2.67 fps so the multi-gate TTC window stays viable. Score decay loop off with `0`. |
 | **Cloud delivery** | `ROAD_CLOUD_ENDPOINT`, `ROAD_CLOUD_HMAC_SECRET` | Edge → cloud HMAC-signed batched delivery. Without these, events stay local. |
 
 See `.env.example` for the full list.
